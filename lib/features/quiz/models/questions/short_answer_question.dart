@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/models/question.dart';
 
 class ShortAnswerQuestion extends Question {
@@ -19,10 +20,11 @@ class ShortAnswerQuestion extends Question {
   @override
   bool validateAnswer(dynamic answer) {
     if (answer is! String) return false;
-    
+
     String userAnswer = caseSensitive ? answer : answer.toLowerCase();
     for (var acceptableAnswer in acceptableAnswers) {
-      String correctAnswer = caseSensitive ? acceptableAnswer : acceptableAnswer.toLowerCase();
+      String correctAnswer =
+          caseSensitive ? acceptableAnswer : acceptableAnswer.toLowerCase();
       if (userAnswer == correctAnswer) return true;
     }
     return false;
@@ -80,10 +82,12 @@ class _ShortAnswerQuestionWidget extends StatefulWidget {
   const _ShortAnswerQuestionWidget({required this.question});
 
   @override
-  State<_ShortAnswerQuestionWidget> createState() => _ShortAnswerQuestionWidgetState();
+  State<_ShortAnswerQuestionWidget> createState() =>
+      _ShortAnswerQuestionWidgetState();
 }
 
-class _ShortAnswerQuestionWidgetState extends State<_ShortAnswerQuestionWidget> {
+class _ShortAnswerQuestionWidgetState
+    extends State<_ShortAnswerQuestionWidget> {
   final TextEditingController _answerController = TextEditingController();
 
   @override
@@ -150,9 +154,14 @@ class _ShortAnswerFeedbackWidget extends StatelessWidget {
         Text('Tu respuesta: "$userAnswer"'),
         const SizedBox(height: 8),
         Text('Respuestas aceptables:'),
-        ...question.acceptableAnswers.map((answer) =>
-          Text('• $answer', style: const TextStyle(fontWeight: FontWeight.bold))
-        ).toList(),
+        ...question.acceptableAnswers
+            .map(
+              (answer) => Text(
+                '• $answer',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            )
+            .toList(),
       ],
     );
   }

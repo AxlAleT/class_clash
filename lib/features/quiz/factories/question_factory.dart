@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
 import '../../../core/models/question.dart';
 import '../models/questions/multiple_choice_question.dart';
-import '../models/questions/true_false_question.dart';
 import '../models/questions/short_answer_question.dart';
+import '../models/questions/true_false_question.dart';
 // Importar otros tipos de preguntas
 
 /// Factory para crear diferentes tipos de preguntas
@@ -15,7 +14,7 @@ class QuestionFactory {
         return TrueFalseQuestion.fromJson(data);
       case 'short_answer':
         return ShortAnswerQuestion.fromJson(data);
-    // Añadir más tipos de preguntas aquí
+      // Añadir más tipos de preguntas aquí
       default:
         throw Exception('Tipo de pregunta no soportado: $type');
     }

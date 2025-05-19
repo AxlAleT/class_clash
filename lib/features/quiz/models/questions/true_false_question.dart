@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/models/question.dart';
 
 class TrueFalseQuestion extends Question {
@@ -69,7 +70,8 @@ class _TrueFalseQuestionWidget extends StatefulWidget {
   const _TrueFalseQuestionWidget({required this.question});
 
   @override
-  _TrueFalseQuestionWidgetState createState() => _TrueFalseQuestionWidgetState();
+  _TrueFalseQuestionWidgetState createState() =>
+      _TrueFalseQuestionWidgetState();
 }
 
 class _TrueFalseQuestionWidgetState extends State<_TrueFalseQuestionWidget> {
@@ -100,8 +102,12 @@ class _TrueFalseQuestionWidgetState extends State<_TrueFalseQuestionWidget> {
                 });
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: selectedAnswer == true ? Colors.blue.shade300 : null,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                backgroundColor:
+                    selectedAnswer == true ? Colors.blue.shade300 : null,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 16,
+                ),
               ),
               child: const Text('True', style: TextStyle(fontSize: 18)),
             ),
@@ -112,8 +118,12 @@ class _TrueFalseQuestionWidgetState extends State<_TrueFalseQuestionWidget> {
                 });
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: selectedAnswer == false ? Colors.blue.shade300 : null,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                backgroundColor:
+                    selectedAnswer == false ? Colors.blue.shade300 : null,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 16,
+                ),
               ),
               child: const Text('False', style: TextStyle(fontSize: 18)),
             ),

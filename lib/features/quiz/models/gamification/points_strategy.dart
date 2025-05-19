@@ -1,5 +1,6 @@
 // Archivo: lib/features/quiz/models/gamification/points_strategy.dart
 import 'package:flutter/material.dart';
+
 import '../../../../core/models/gamification_strategy.dart';
 
 class PointsStrategy extends GamificationStrategy {
@@ -41,7 +42,7 @@ class PointsStrategy extends GamificationStrategy {
       }
 
       // Actualizar el estado del quiz
-      var newState = {...quizState};
+      var newState = <String, dynamic>{...quizState};
       newState['totalPoints'] = (quizState['totalPoints'] ?? 0) + pointsEarned;
       newState['currentStreak'] = (quizState['currentStreak'] ?? 0) + 1;
       newState['lastPointsEarned'] = pointsEarned;
@@ -49,7 +50,7 @@ class PointsStrategy extends GamificationStrategy {
       updateState(newState);
     } else if (userAction['type'] == 'answer' && !userAction['isCorrect']) {
       // Reiniciar la racha si la respuesta es incorrecta
-      var newState = {...quizState};
+      var newState = <String, dynamic>{...quizState};
       newState['currentStreak'] = 0;
       newState['lastPointsEarned'] = 0;
 
@@ -88,7 +89,7 @@ class PointsStrategy extends GamificationStrategy {
     return PointsStrategy(
       id: json['id'],
       name: json['name'],
-      configuration: json['configuration'] ?? {},
+      configuration: json['configuration'] ?? <String, dynamic>{},
       basePoints: json['basePoints'] ?? 10,
       bonusTimeThreshold: json['bonusTimeThreshold'] ?? 5,
       timeBonus: json['timeBonus'] ?? 5,
@@ -115,15 +116,15 @@ class _PointsWidget extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          'Puntos: $points',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        Text('Puntos: $points', style: Theme.of(context).textTheme.titleLarge),
         if (streak > 0)
           Row(
             children: [
               const Icon(Icons.local_fire_department, color: Colors.orange),
-              Text('Racha: $streak', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Racha: $streak',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ],
           ),
         if (lastPointsEarned != null && lastPointsEarned! > 0)

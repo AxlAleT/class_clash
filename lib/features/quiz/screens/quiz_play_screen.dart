@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../providers/quiz_providers.dart';
 import '../controllers/quiz_controller.dart';
 
 // Provider for the quiz controller
-final quizControllerProvider = StateNotifierProvider.family<QuizController, QuizState, String>(
-      (ref, quizId) => QuizController(ref.read)..loadQuiz(quizId),
-);
+final quizControllerProvider =
+    StateNotifierProvider.family<QuizController, QuizState, String>(
+      (ref, quizId) => QuizController(ref)..loadQuiz(quizId),
+    );
 
 class QuizPlayScreen extends ConsumerStatefulWidget {
   final String quizId;
@@ -57,7 +59,10 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
               padding: const EdgeInsets.only(right: 16.0),
               child: Text(
                 'Score: ${quizState.totalPoints}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -69,7 +74,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
           LinearProgressIndicator(
             value: progressValue,
             backgroundColor: Colors.grey[300],
-            valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).colorScheme.primary,
+            ),
           ),
 
           // Question counter
@@ -80,7 +87,10 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
               children: [
                 Text(
                   'Question ${currentQuestionIndex + 1}/$totalQuestions',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 if (currentQuestion.timeLimit > 0)
                   Row(
@@ -105,7 +115,10 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                     padding: const EdgeInsets.all(24.0),
                     child: Text(
                       currentQuestion.title,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -127,13 +140,18 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                       // This wrapping is important for animations and state preservation
                       return AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
-                        child: _answered
-                            ? currentQuestion.buildFeedbackWidget(_selectedAnswer,
-                            currentQuestion.validateAnswer(_selectedAnswer))
-                            : _wrapWithAnswerHandler(
-                          currentQuestion.buildQuestionWidget(),
-                          controller,
-                        ),
+                        child:
+                            _answered
+                                ? currentQuestion.buildFeedbackWidget(
+                                  _selectedAnswer,
+                                  currentQuestion.validateAnswer(
+                                    _selectedAnswer,
+                                  ),
+                                )
+                                : _wrapWithAnswerHandler(
+                                  currentQuestion.buildQuestionWidget(),
+                                  controller,
+                                ),
                       );
                     },
                   ),
@@ -151,7 +169,10 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   }
 
   // Handle answer submission and feedback display
-  Widget _wrapWithAnswerHandler(Widget questionWidget, QuizController controller) {
+  Widget _wrapWithAnswerHandler(
+    Widget questionWidget,
+    QuizController controller,
+  ) {
     // This method will intercept the answer before passing it to the controller
     // It allows us to show feedback before moving to the next question
     return NotificationListener<AnswerNotification>(
@@ -183,12 +204,17 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   }
 
   // Build gamification widgets from the controller
-  List<Widget> _buildGamificationWidgets(QuizController controller, QuizState state) {
+  List<Widget> _buildGamificationWidgets(
+    QuizController controller,
+    QuizState state,
+  ) {
     // This is a simplified version - in a real app, you'd get these from the controller
     // which would use the gamification factories
 
     // Check if we have a leaderboard strategy
-    final hasLeaderboard = state.gamificationStrategies.any((s) => s.strategyType == 'leaderboard');
+    final hasLeaderboard = state.gamificationStrategies.any(
+      (s) => s.strategyType == 'leaderboard',
+    );
 
     if (hasLeaderboard) {
       // Display a dummy leaderboard for this example
@@ -216,7 +242,13 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                   scrollDirection: Axis.horizontal,
                   itemCount: 5,
                   itemBuilder: (context, index) {
-                    final participants = ['You', 'Alex', 'Jamie', 'Taylor', 'Morgan'];
+                    final participants = [
+                      'You',
+                      'Alex',
+                      'Jamie',
+                      'Taylor',
+                      'Morgan',
+                    ];
                     final scores = {
                       'You': state.totalPoints,
                       'Alex': 120,
@@ -233,13 +265,19 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: participant == 'You'
-                            ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-                            : Theme.of(context).colorScheme.surface,
+                        color:
+                            participant == 'You'
+                                ? Theme.of(
+                                  context,
+                                ).colorScheme.primary.withOpacity(0.2)
+                                : Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
-                        border: participant == 'You'
-                            ? Border.all(color: Theme.of(context).colorScheme.primary)
-                            : null,
+                        border:
+                            participant == 'You'
+                                ? Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                )
+                                : null,
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -247,7 +285,10 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                           Text(
                             participant,
                             style: TextStyle(
-                              fontWeight: participant == 'You' ? FontWeight.bold : FontWeight.normal,
+                              fontWeight:
+                                  participant == 'You'
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -279,25 +320,26 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Quiz Complete!'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Your score: ${results['totalPoints']} points'),
-            const SizedBox(height: 16),
-            const Text('Congratulations on completing the quiz!'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              context.go('/');
-            },
-            child: const Text('Return Home'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Quiz Complete!'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Your score: ${results['totalPoints']} points'),
+                const SizedBox(height: 16),
+                const Text('Congratulations on completing the quiz!'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  context.go('/');
+                },
+                child: const Text('Return Home'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }

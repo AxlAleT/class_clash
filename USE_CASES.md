@@ -1,6 +1,6 @@
 ## Question Types
 
-| **Type**                  | **Description / Use Case**                                                                  |
+| **Type**                  | **Description / Use Case**                                                                 |
 |---------------------------|--------------------------------------------------------------------------------------------|
 | Multiple Choice (MCQ)     | Standard question with 2–6 options; good for quizzes, reviews, and fast recall checks      |
 | True/False                | Binary choice; perfect for quick knowledge checks or warm-ups                              |
@@ -11,12 +11,12 @@
 | Matching / Categorization | Match pairs or group into categories; ideal for definitions, language learning, or sorting |
 | Image / Hotspot           | Click regions on images; good for labeling diagrams, geography (maps), or anatomy          |
 | Audio / Video Prompts     | Questions with embedded media; great for listening exercises or visual recognition         |
-| Slider / Scale            | Students slide to select a number; good for dates, measurements, or opinion scales        |
-| Timed Challenges          | Countdown-based pressure; useful for making quizzes lively and testing rapid recall       |
+| Slider / Scale            | Students slide to select a number; good for dates, measurements, or opinion scales         |
+| Timed Challenges          | Countdown-based pressure; useful for making quizzes lively and testing rapid recall        |
 
 ## Gamification Strategies
 
-| **Strategy**           | **Description / Use Case**                                                                   |
+| **Strategy**           | **Description / Use Case**                                                                  |
 |------------------------|---------------------------------------------------------------------------------------------|
 | Points & Speed Bonuses | Award more points for faster answers; boosts urgency and competitiveness                    |
 | Leaderboards / Podiums | Display top scorers live; motivates students to compete and track performance               |

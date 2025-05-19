@@ -2,7 +2,9 @@
 
 ## General Structure
 
-The application will follow a modular architecture based on the Factory Method pattern, using Riverpod for state management and go_router for navigation. The proposed structure allows easy addition of new question types and gamification strategies without modifying existing code.
+The application will follow a modular architecture based on the Factory Method pattern, using
+Riverpod for state management and go_router for navigation. The proposed structure allows easy
+addition of new question types and gamification strategies without modifying existing code.
 
 lib/
 ├── main.dart
@@ -72,7 +74,6 @@ lib/
 ├── auth_providers.dart
 └── quiz_providers.dart
 
-
 ## Architecture Diagram
 
 ┌─────────────────────────────┐ ┌─────────────────────────────┐
@@ -94,7 +95,6 @@ lib/
 ┌─────────┐ ┌─────────┐ ┌─────┐ ┌─────────┐ ┌─────────┐ ┌─────┐
 │ MCQ │ │ TrueFalse│ │ ... │ │ Points │ │Leaderboard│ │... │
 └─────────┘ └─────────┘ └─────┘ └─────────┘ └─────────┘ └─────┘
-
 
 ## Design Patterns Used
 

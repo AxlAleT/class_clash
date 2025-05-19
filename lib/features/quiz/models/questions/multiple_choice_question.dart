@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+
 import '../../../../core/models/question.dart';
 
 class MultipleChoiceQuestion extends Question {
@@ -71,14 +71,19 @@ class MultipleChoiceQuestion extends Question {
 
   factory MultipleChoiceQuestion.fromJson(Map<String, dynamic> json) {
     return MultipleChoiceQuestion(
-      id: json['id'],
-      title: json['title'],
+      id: json['id'] ?? '',
+      // Provide default empty string
+      title: json['title'] ?? '',
+      // Provide default empty string
       description: json['description'],
+      // This can be null
       points: json['points'] ?? 10,
       timeLimit: json['timeLimit'] ?? 0,
       metadata: json['metadata'] ?? {},
-      options: List<String>.from(json['options']),
-      correctOptionIndices: List<int>.from(json['correctOptionIndices']),
+      options: List<String>.from(json['options'] ?? []),
+      // Handle null options
+      correctOptionIndices: List<int>.from(json['correctOptionIndices'] ?? []),
+      // Handle null correctOptionIndices
       allowMultipleSelections: json['allowMultipleSelections'] ?? false,
     );
   }
@@ -91,10 +96,12 @@ class _MultipleChoiceQuestionWidget extends StatefulWidget {
   const _MultipleChoiceQuestionWidget({required this.question});
 
   @override
-  _MultipleChoiceQuestionWidgetState createState() => _MultipleChoiceQuestionWidgetState();
+  _MultipleChoiceQuestionWidgetState createState() =>
+      _MultipleChoiceQuestionWidgetState();
 }
 
-class _MultipleChoiceQuestionWidgetState extends State<_MultipleChoiceQuestionWidget> {
+class _MultipleChoiceQuestionWidgetState
+    extends State<_MultipleChoiceQuestionWidget> {
   List<int> selectedIndices = [];
 
   @override
@@ -119,28 +126,32 @@ class _MultipleChoiceQuestionWidgetState extends State<_MultipleChoiceQuestionWi
 
           return ListTile(
             title: Text(option),
-            leading: widget.question.allowMultipleSelections
-                ? Checkbox(
-              value: isSelected,
-              onChanged: (bool? value) {
-                setState(() {
-                  if (value == true) {
-                    selectedIndices.add(index);
-                  } else {
-                    selectedIndices.remove(index);
-                  }
-                });
-              },
-            )
-                : Radio<int>(
-              value: index,
-              groupValue: selectedIndices.isNotEmpty ? selectedIndices.first : null,
-              onChanged: (int? value) {
-                setState(() {
-                  selectedIndices = [value!];
-                });
-              },
-            ),
+            leading:
+                widget.question.allowMultipleSelections
+                    ? Checkbox(
+                      value: isSelected,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          if (value == true) {
+                            selectedIndices.add(index);
+                          } else {
+                            selectedIndices.remove(index);
+                          }
+                        });
+                      },
+                    )
+                    : Radio<int>(
+                      value: index,
+                      groupValue:
+                          selectedIndices.isNotEmpty
+                              ? selectedIndices.first
+                              : null,
+                      onChanged: (int? value) {
+                        setState(() {
+                          selectedIndices = [value!];
+                        });
+                      },
+                    ),
           );
         }).toList(),
       ],
@@ -176,8 +187,10 @@ class _MultipleChoiceFeedbackWidget extends StatelessWidget {
         const SizedBox(height: 16),
         Text('Las opciones correctas eran:'),
         ...question.correctOptionIndices.map((index) {
-          return Text('- ${question.options[index]}',
-              style: const TextStyle(fontWeight: FontWeight.bold));
+          return Text(
+            '- ${question.options[index]}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          );
         }).toList(),
       ],
     );

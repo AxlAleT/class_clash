@@ -1,62 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/models/question.dart';
+
 import '../../../core/models/gamification_strategy.dart';
-import '../factories/question_factory.dart';
-import '../factories/gamification_factory.dart';
+import '../../../core/models/question.dart';
 import '../../../providers/quiz_providers.dart';
+import '../factories/gamification_factory.dart';
+import '../factories/question_factory.dart';
 
 /// Controller to handle quiz flow and dynamic screen creation
 class QuizController extends StateNotifier<QuizState> {
-  final Reader read;
+  final Ref ref;
 
-  QuizController(this.read) : super(QuizState());
+  QuizController(this.ref) : super(QuizState());
 
   /// Load a quiz by ID from storage or API
   Future<void> loadQuiz(String quizId) async {
     // Simulate loading quiz data
     // In a real app, this would fetch from an API or local storage
-    final Map<String, dynamic> quizData = {
-      'id': quizId,
-      'title': 'Sample Quiz',
-      'questions': [
-        {
-          'type': 'multiple_choice',
-          'data': {
-            'id': 'q1',
-            'title': 'What is the capital of France?',
-            'options': ['Berlin', 'Madrid', 'Paris', 'Rome'],
-            'correctAnswer': 2,
-            'points': 10,
-          }
-        },
-        {
-          'type': 'true_false',
-          'data': {
-            'id': 'q2',
-            'title': 'The sky is blue.',
-            'correctAnswer': true,
-            'points': 5,
-          }
-        }
-      ],
-      'gamification': [
-        {
-          'type': 'points',
-          'data': {
-            'speedBonus': true,
-            'streakMultiplier': 1.5,
-          }
-        },
-        {
-          'type': 'leaderboard',
-          'data': {
-            'enabled': true,
-            'showTop': 5,
-          }
-        }
-      ]
-    };
+    final Map<String, dynamic> quizData = ref
+        .read(quizProvider)
+        .getQuizData(quizId);
 
     // Process and load questions using the factory
     final List<Question> questions = [];
@@ -92,10 +55,7 @@ class QuizController extends StateNotifier<QuizState> {
     state = state.copyWith(
       questions: questions,
       gamificationStrategies: strategies,
-      metadata: {
-        'quizId': quizId,
-        'quizTitle': quizData['title'],
-      },
+      metadata: {'quizId': quizId, 'quizTitle': quizData['title']},
     );
   }
 
@@ -127,7 +87,7 @@ class QuizController extends StateNotifier<QuizState> {
       };
 
       // Get UI widget from the strategy
-      Widget? strategyWidget = strategy.buildUI(strategyState);
+      Widget? strategyWidget = strategy.buildStrategyWidget(strategyState);
       if (strategyWidget != null) {
         widgets.add(strategyWidget);
       }

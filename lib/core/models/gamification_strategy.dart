@@ -11,7 +11,7 @@ abstract class GamificationStrategy {
   GamificationStrategy({
     required this.id,
     required this.name,
-    this.configuration = const {},
+    this.configuration = const <String, dynamic>{},
   });
 
   /// Aplicar la estrategia al estado actual del quiz

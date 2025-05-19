@@ -1,9 +1,50 @@
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../features/quiz/factories/question_factory.dart';
-import '../features/quiz/factories/gamification_factory.dart';
-import '../core/models/question.dart';
+
 import '../core/models/gamification_strategy.dart';
+import '../core/models/question.dart';
+import '../features/quiz/factories/gamification_factory.dart';
+import '../features/quiz/factories/question_factory.dart';
+
+// Quiz Service class to handle quiz data
+class QuizService {
+  // Method to get quiz data by ID
+  Map<String, dynamic> getQuizData(String quizId) {
+    // In a real app, this would fetch from an API or local storage
+    // For now, returning mock data
+    return {
+      'title': 'Sample Quiz',
+      'questions': [
+        {
+          'type': 'multiple_choice',
+          'data': {
+            'id': '1', // Added id field
+            'title': 'What is the capital of France?',
+            'description': 'Select the correct capital city.',
+            'options': ['Paris', 'London', 'Berlin', 'Rome'],
+            'correctOptionIndices': [0], // Changed to use indices instead
+            'points': 10,
+          },
+        },
+        // More questions would be here
+      ],
+      'gamification': [
+        {
+          'type': 'points',
+          'data': {'basePoints': 10},
+        },
+        {
+          'type': 'streak',
+          'data': {'bonusPoints': 5},
+        },
+      ],
+    };
+  }
+}
+
+// Provider for quiz service
+final quizProvider = Provider<QuizService>((ref) {
+  return QuizService();
+});
 
 // Proveedor para los tipos de preguntas disponibles
 final availableQuestionTypesProvider = Provider<List<String>>((ref) {
@@ -43,7 +84,8 @@ class QuizState {
   }) {
     return QuizState(
       questions: questions ?? this.questions,
-      gamificationStrategies: gamificationStrategies ?? this.gamificationStrategies,
+      gamificationStrategies:
+          gamificationStrategies ?? this.gamificationStrategies,
       currentQuestionIndex: currentQuestionIndex ?? this.currentQuestionIndex,
       totalPoints: totalPoints ?? this.totalPoints,
       currentStreak: currentStreak ?? this.currentStreak,
@@ -62,9 +104,7 @@ class QuizNotifier extends StateNotifier<QuizState> {
 
   // Añadir una pregunta al quiz
   void addQuestion(Question question) {
-    state = state.copyWith(
-      questions: [...state.questions, question],
-    );
+    state = state.copyWith(questions: [...state.questions, question]);
   }
 
   // Añadir una estrategia de gamificación
@@ -129,5 +169,10 @@ class QuizNotifier extends StateNotifier<QuizState> {
       questions: state.questions,
       gamificationStrategies: state.gamificationStrategies,
     );
+  }
+
+  // Update quiz metadata
+  void updateQuizMetadata(Map<String, dynamic> newMetadata) {
+    state = state.copyWith(metadata: {...state.metadata, ...newMetadata});
   }
 }

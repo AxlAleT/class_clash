@@ -21,15 +21,11 @@ class HomeScreen extends StatelessWidget {
                   color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(24),
                 ),
-                child: const Icon(
-                  Icons.school,
-                  color: Colors.white,
-                  size: 64,
-                ),
+                child: const Icon(Icons.school, color: Colors.white, size: 64),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // App Title
               Text(
                 'Class Clash',
@@ -38,37 +34,40 @@ class HomeScreen extends StatelessWidget {
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // App Description
               Text(
                 'Make learning fun with interactive quizzes and games!',
                 style: Theme.of(context).textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
-              
+
               const SizedBox(height: 64),
-              
+
               // Teacher Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    context.go('/');
+                    context.go('/quizzes');
                   },
                   icon: const Icon(Icons.person),
-                  label: const Text('Enter as Teacher', style: TextStyle(fontSize: 16)),
+                  label: const Text(
+                    'Enter as Teacher',
+                    style: TextStyle(fontSize: 16),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Student Button
               SizedBox(
                 width: double.infinity,
@@ -78,44 +77,48 @@ class HomeScreen extends StatelessWidget {
                     // Join a quiz
                     showDialog(
                       context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Join a Quiz'),
-                        content: TextField(
-                          decoration: const InputDecoration(
-                            labelText: 'Enter Quiz Code',
-                            border: OutlineInputBorder(),
+                      builder:
+                          (context) => AlertDialog(
+                            title: const Text('Join a Quiz'),
+                            content: TextField(
+                              decoration: const InputDecoration(
+                                labelText: 'Enter Quiz Code',
+                                border: OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  context.go('/play/1'); // Sample quiz ID
+                                },
+                                child: const Text('Join'),
+                              ),
+                            ],
                           ),
-                          keyboardType: TextInputType.number,
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              context.go('/play/1'); // Sample quiz ID
-                            },
-                            child: const Text('Join'),
-                          ),
-                        ],
-                      ),
                     );
                   },
                   icon: const Icon(Icons.people),
-                  label: const Text('Enter as Student', style: TextStyle(fontSize: 16)),
+                  label: const Text(
+                    'Enter as Student',
+                    style: TextStyle(fontSize: 16),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.secondary,
                     foregroundColor: Colors.white,
                   ),
                 ),
               ),
-              
+
               const Spacer(),
-              
+
               // Version info
               Text(
                 'Version 1.0.0',
