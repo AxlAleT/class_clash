@@ -1,194 +1,188 @@
+import 'package:built_collection/built_collection.dart';
+import 'package:built_value/built_value.dart';
+import 'package:built_value/serializer.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/models/question.dart';
-import '../../screens/quiz_play_screen.dart';
 
-class MultipleChoiceQuestion extends Question {
-  final List<String> options;
-  final List<int> correctOptionIndices;
-  final bool allowMultipleSelections;
+part 'multiple_choice_question.g.dart';
 
-  MultipleChoiceQuestion({
-    required super.id,
-    required super.title,
-    super.description,
-    super.points,
-    super.timeLimit,
-    super.metadata,
-    required this.options,
-    required this.correctOptionIndices,
-    this.allowMultipleSelections = false,
-  });
+abstract class MultipleChoiceQuestion implements Built<MultipleChoiceQuestion, MultipleChoiceQuestionBuilder>, Question {
+  // Question required properties
+  @override
+  String get id;
+  
+  @override
+  String get title;
+  
+  @override
+  @nullable
+  String? get description;
+  
+  @override
+  @BuiltValueField(wireName: 'points')
+  int get points;
+  
+  @override
+  @BuiltValueField(wireName: 'timeLimit')
+  int get timeLimit;
+  
+  @override
+  @nullable
+  String? get imageUrl;
+  
+  @override
+  @nullable
+  String? get audioUrl;
+  
+  @override
+  @nullable
+  String? get videoUrl;
+  
+  @override
+  double get partialCreditThreshold;
+  
+  // Multiple choice specific properties
+  BuiltList<String> get options;
+  
+  BuiltList<int> get correctOptionIndices;
+  
+  bool get allowMultipleAnswers;
+  
+  @override
+  @memoized
+  Map<String, dynamic> get metadata => {
+    'allowMultipleAnswers': allowMultipleAnswers,
+    'optionsCount': options.length
+  };
+
+  static void _initializeBuilder(MultipleChoiceQuestionBuilder b) {
+    b
+      ..points = 10
+      ..timeLimit = 0
+      ..allowMultipleAnswers = false
+      ..partialCreditThreshold = 0.0;
+  }
+
+  MultipleChoiceQuestion._();
+  
+  factory MultipleChoiceQuestion([void Function(MultipleChoiceQuestionBuilder) updates]) = _$MultipleChoiceQuestion;
+
+  static Serializer<MultipleChoiceQuestion> get serializer => _$multipleChoiceQuestionSerializer;
 
   @override
   bool validateAnswer(dynamic answer) {
-    if (answer is List<int>) {
-      if (allowMultipleSelections) {
-        // Para selección múltiple, verificar si todas las respuestas correctas están seleccionadas
-        return answer.length == correctOptionIndices.length &&
-            answer.every((i) => correctOptionIndices.contains(i));
+    if (allowMultipleAnswers) {
+      // For multiple answers
+      final List<int> selectedIndices = List<int>.from(answer);
+      return selectedIndices.length == correctOptionIndices.length &&
+          correctOptionIndices.every((index) => selectedIndices.contains(index));
+    } else {
+      // For single answer
+      final int selectedIndex = answer as int;
+      return correctOptionIndices.contains(selectedIndex);
+    }
+  }
+
+  @override
+  double calculatePartialCredit(dynamic answer) {
+    if (!allowMultipleAnswers || correctOptionIndices.length <= 1) {
+      return 0.0; // No partial credit for single-answer questions
+    }
+
+    final List<int> selectedIndices = List<int>.from(answer);
+    int correctSelections = 0;
+    
+    // Count correct selections
+    for (int index in selectedIndices) {
+      if (correctOptionIndices.contains(index)) {
+        correctSelections++;
       } else {
-        // Para selección única, verificar si la única opción seleccionada es correcta
-        return answer.length == 1 && correctOptionIndices.contains(answer[0]);
+        // Penalty for incorrect selections
+        correctSelections--;
       }
     }
-    return false;
+    
+    // Calculate proportion of correct answers
+    double proportion = correctSelections / correctOptionIndices.length;
+    proportion = proportion < 0 ? 0 : proportion; // Ensure non-negative
+    
+    // Apply threshold
+    if (proportion >= partialCreditThreshold && proportion < 1.0) {
+      return proportion;
+    }
+    
+    return 0.0;
   }
 
   @override
   Widget buildQuestionWidget() {
-    // Implementación del widget de pregunta de opción múltiple
-    return _MultipleChoiceQuestionWidget(question: this);
-  }
-
-  @override
-  Widget buildFeedbackWidget(dynamic userAnswer, bool isCorrect) {
-    // Implementación del widget de retroalimentación
-    return _MultipleChoiceFeedbackWidget(
-      question: this,
-      userAnswer: userAnswer,
-      isCorrect: isCorrect,
-    );
-  }
-
-  @override
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'title': title,
-      'description': description,
-      'points': points,
-      'timeLimit': timeLimit,
-      'metadata': metadata,
-      'options': options,
-      'correctOptionIndices': correctOptionIndices,
-      'allowMultipleSelections': allowMultipleSelections,
-      'type': questionType,
-    };
-  }
-
-  @override
-  String get questionType => 'multiple_choice';
-
-  factory MultipleChoiceQuestion.fromJson(Map<String, dynamic> json) {
-    return MultipleChoiceQuestion(
-      id: json['id'] ?? '',
-      // Provide default empty string
-      title: json['title'] ?? '',
-      // Provide default empty string
-      description: json['description'],
-      // This can be null
-      points: json['points'] ?? 10,
-      timeLimit: json['timeLimit'] ?? 0,
-      metadata: json['metadata'] ?? {},
-      options: List<String>.from(json['options'] ?? []),
-      // Handle null options
-      correctOptionIndices: List<int>.from(json['correctOptionIndices'] ?? []),
-      // Handle null correctOptionIndices
-      allowMultipleSelections: json['allowMultipleSelections'] ?? false,
-    );
-  }
-}
-
-// Widget placeholder para la pregunta de opción múltiple
-class _MultipleChoiceQuestionWidget extends StatefulWidget {
-  final MultipleChoiceQuestion question;
-
-  const _MultipleChoiceQuestionWidget({required this.question});
-
-  @override
-  _MultipleChoiceQuestionWidgetState createState() =>
-      _MultipleChoiceQuestionWidgetState();
-}
-
-class _MultipleChoiceQuestionWidgetState
-    extends State<_MultipleChoiceQuestionWidget> {
-  List<int> selectedIndices = [];
-
-  @override
-  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget.question.title,
-          style: Theme.of(context).textTheme.headlineSmall,
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        if (widget.question.description != null)
+        
+        if (description != null)
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
-            child: Text(widget.question.description!),
+            child: Text(description!, style: const TextStyle(fontSize: 16)),
           ),
+        
+        if (imageUrl != null || audioUrl != null || videoUrl != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12.0),
+            child: buildMediaWidget(),
+          ),
+          
         const SizedBox(height: 16),
-        ...widget.question.options.asMap().entries.map((entry) {
-          int index = entry.key;
-          String option = entry.value;
-          bool isSelected = selectedIndices.contains(index);
-
-          return ListTile(
-            title: Text(option),
-            leading:
-                widget.question.allowMultipleSelections
-                    ? Checkbox(
-                      value: isSelected,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          if (value == true) {
-                            selectedIndices.add(index);
-                          } else {
-                            selectedIndices.remove(index);
-                          }
-                        });
-                      },
-                    )
-                    : Radio<int>(
-                      value: index,
-                      groupValue:
-                          selectedIndices.isNotEmpty
-                              ? selectedIndices.first
-                              : null,
-                      onChanged: (int? value) {
-                        setState(() {
-                          selectedIndices = [value!];
-                        });
-                      },
-                    ),
-          );
-        }).toList(),
-        const SizedBox(height: 24),
-        Center(
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(200, 48),
+        Text(
+          allowMultipleAnswers 
+              ? "Select all correct answers:" 
+              : "Select the correct answer:",
+          style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 14),
+        ),
+        const SizedBox(height: 8),
+        
+        // Option widgets would be built here
+        ...List.generate(
+          options.length,
+          (index) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6.0),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Text(options[index]),
             ),
-            onPressed: selectedIndices.isNotEmpty
-                ? () {
-                    // Send notification with selected answer
-                    AnswerNotification(selectedIndices).dispatch(context);
-                  }
-                : null,
-            child: const Text('Submit Answer', style: TextStyle(fontSize: 16)),
           ),
         ),
       ],
     );
   }
-}
-
-// Widget placeholder para la retroalimentación
-class _MultipleChoiceFeedbackWidget extends StatelessWidget {
-  final MultipleChoiceQuestion question;
-  final dynamic userAnswer;
-  final bool isCorrect;
-
-  const _MultipleChoiceFeedbackWidget({
-    required this.question,
-    required this.userAnswer,
-    required this.isCorrect,
-  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildMediaWidget() {
+    if (imageUrl != null) {
+      return Image.network(
+        imageUrl!,
+        errorBuilder: (context, error, stackTrace) => 
+            const Text('Failed to load image'),
+      );
+    } else if (videoUrl != null) {
+      return const Center(child: Text('Video player would be here'));
+    } else if (audioUrl != null) {
+      return const Center(child: Text('Audio player would be here'));
+    }
+    return const SizedBox.shrink();
+  }
+
+  @override
+  Widget buildFeedbackWidget(dynamic userAnswer, bool isCorrect) {
     return Column(
       children: [
         Icon(
@@ -196,19 +190,64 @@ class _MultipleChoiceFeedbackWidget extends StatelessWidget {
           color: isCorrect ? Colors.green : Colors.red,
           size: 48,
         ),
-        Text(
-          isCorrect ? '¡Respuesta correcta!' : 'Respuesta incorrecta',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
         const SizedBox(height: 16),
-        Text('Las opciones correctas eran:'),
-        ...question.correctOptionIndices.map((index) {
-          return Text(
-            '- ${question.options[index]}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          );
-        }).toList(),
+        Text(
+          isCorrect ? 'Correct!' : 'Incorrect',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: isCorrect ? Colors.green : Colors.red,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'The correct answer${correctOptionIndices.length > 1 ? 's are' : ' is'}: ' +
+              correctOptionIndices
+                  .map((index) => options[index])
+                  .join(', '),
+          style: const TextStyle(fontSize: 16),
+        ),
       ],
     );
   }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': questionType,
+      'title': title,
+      'description': description,
+      'options': options.toList(),
+      'correctOptionIndices': correctOptionIndices.toList(),
+      'allowMultipleAnswers': allowMultipleAnswers,
+      'points': points,
+      'timeLimit': timeLimit,
+      'metadata': metadata,
+      'imageUrl': imageUrl,
+      'audioUrl': audioUrl,
+      'videoUrl': videoUrl,
+      'partialCreditThreshold': partialCreditThreshold,
+    };
+  }
+
+  static MultipleChoiceQuestion fromJson(Map<String, dynamic> json) {
+    return MultipleChoiceQuestion((b) => b
+      ..id = json['id']
+      ..title = json['title']
+      ..description = json['description']
+      ..options = ListBuilder<String>(List<String>.from(json['options']))
+      ..correctOptionIndices = ListBuilder<int>(List<int>.from(json['correctOptionIndices']))
+      ..allowMultipleAnswers = json['allowMultipleAnswers'] ?? false
+      ..points = json['points'] ?? 10
+      ..timeLimit = json['timeLimit'] ?? 0
+      ..imageUrl = json['imageUrl']
+      ..audioUrl = json['audioUrl']
+      ..videoUrl = json['videoUrl']
+      ..partialCreditThreshold = json['partialCreditThreshold'] ?? 0.0
+    );
+  }
+
+  @override
+  String get questionType => 'multipleChoice';
 }

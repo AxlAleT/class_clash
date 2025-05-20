@@ -1,32 +1,65 @@
-// Archivo: lib/core/models/gamification_strategy.dart
 
 import 'package:flutter/material.dart';
 
-/// Clase abstracta base para todas las estrategias de gamificación
+/// Abstract base class for all gamification strategies
 abstract class GamificationStrategy {
   final String id;
   final String name;
   final Map<String, dynamic> configuration;
-
+  
+  // Additional properties
+  final int priority; // Higher number = higher priority when multiple strategies apply
+  final Map<String, dynamic> conditions; // When this strategy should be applied
+  final Map<String, dynamic> analyticsData; // Track effectiveness
+  
   GamificationStrategy({
     required this.id,
     required this.name,
     this.configuration = const <String, dynamic>{},
-  });
+    this.priority = 1,
+    this.conditions = const <String, dynamic>{},
+    Map<String, dynamic>? analyticsData,
+  }) : analyticsData = analyticsData ?? {};
 
-  /// Aplicar la estrategia al estado actual del quiz
+  /// Check if strategy is applicable in the current context
+  bool isApplicable(Map<String, dynamic> quizState) {
+    // Default implementation - can be overridden by subclasses
+    if (conditions.isEmpty) return true;
+    
+    // Check each condition against quiz state
+    for (final entry in conditions.entries) {
+      final key = entry.key;
+      final value = entry.value;
+      
+      if (!quizState.containsKey(key)) return false;
+      if (quizState[key] != value) return false;
+    }
+    
+    return true;
+  }
+  
+  /// Apply the strategy to the current quiz state
   void applyStrategy({
     required dynamic quizState,
     required dynamic userAction,
     required Function(dynamic) updateState,
   });
 
-  /// Construir el widget de UI para esta estrategia
+  /// Track effectiveness of this strategy
+  void trackEffectiveness(dynamic beforeState, dynamic afterState) {
+    // Record metrics about how this strategy affected user performance/engagement
+    // To be implemented by subclasses
+  }
+  
+  /// Build the UI widget for this strategy
   Widget buildStrategyWidget(dynamic quizState);
 
-  /// Convertir a JSON para persistencia
+  /// Convert to JSON for persistence
   Map<String, dynamic> toJson();
+  
+  /// Create GamificationStrategy from JSON (to be implemented by subclasses)
+  /// factory GamificationStrategy.fromJson(Map<String, dynamic> json);
 
-  /// Obtener el tipo de estrategia como string
+  /// Get the type of strategy as a string
   String get strategyType;
 }

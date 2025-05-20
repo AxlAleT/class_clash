@@ -4,35 +4,49 @@ import 'gamification_strategy.dart';
 import 'question.dart';
 
 /// Model class to represent a quiz with its state and behaviors
-class Quiz {
+abstract class Quiz {
   final String id;
   final String title;
+  final String? description;
   final List<Question> questions;
   final List<GamificationStrategy> gamificationStrategies;
-  
+
   // State properties
   int _currentQuestionIndex;
   int _totalPoints;
   int _currentStreak;
   Map<String, dynamic> _metadata;
   List<dynamic> _userAnswers;
+  DateTime? _startTime;
+  DateTime? _endTime;
+  Map<String, List<Duration>> _questionTimeTracking; // Question ID -> List of durations spent
+  Map<String, dynamic> _userFeedback;
   
   Quiz({
     required this.id,
     required this.title,
+    this.description,
     required this.questions,
-    required this.gamificationStrategies,
+    this.gamificationStrategies = const [],
     int currentQuestionIndex = 0,
     int totalPoints = 0,
     int currentStreak = 0,
     Map<String, dynamic>? metadata,
     List<dynamic>? userAnswers,
+    DateTime? startTime,
+    DateTime? endTime,
+    Map<String, List<Duration>>? questionTimeTracking,
+    Map<String, dynamic>? userFeedback,
   }) : 
     _currentQuestionIndex = currentQuestionIndex,
     _totalPoints = totalPoints,
     _currentStreak = currentStreak,
     _metadata = metadata ?? {},
-    _userAnswers = userAnswers ?? List.filled(questions.length, null);
+    _userAnswers = userAnswers ?? List.filled(questions.length, null),
+    _startTime = startTime,
+    _endTime = endTime,
+    _questionTimeTracking = questionTimeTracking ?? {},
+    _userFeedback = userFeedback ?? {};
   
   // Getters
   int get currentQuestionIndex => _currentQuestionIndex;
@@ -44,6 +58,11 @@ class Quiz {
       questions.isNotEmpty && _currentQuestionIndex < questions.length 
       ? questions[_currentQuestionIndex] 
       : null;
+  DateTime? get startTime => _startTime;
+  DateTime? get endTime => _endTime;
+  Duration? get totalTime => (_startTime != null && _endTime != null) 
+      ? _endTime!.difference(_startTime!) 
+      : null;
   
   /// Get current quiz state as a map for use with strategies
   Map<String, dynamic> get currentState => {
@@ -52,130 +71,75 @@ class Quiz {
     'metadata': Map<String, dynamic>.from(_metadata),
   };
   
-  /// Submit an answer and process it with gamification strategies
-  void submitAnswer(dynamic answer) {
-    if (questions.isEmpty || _currentQuestionIndex >= questions.length) {
-      return;
-    }
-    
-    // Store the user's answer
-    _userAnswers[_currentQuestionIndex] = answer;
-    
-    Question question = questions[_currentQuestionIndex];
-    bool isCorrect = question.validateAnswer(answer);
-    
-    // Create action data for strategies
-    Map<String, dynamic> userAction = {
-      'type': 'answer',
-      'isCorrect': isCorrect,
-      'questionIndex': _currentQuestionIndex,
-      'answer': answer,
-      'timeSpent': 0, // This would be calculated from actual time tracking
-    };
-    
-    // Temporary state to apply strategies
-    Map<String, dynamic> tempState = {
-      'totalPoints': _totalPoints,
-      'currentStreak': isCorrect ? _currentStreak + 1 : 0,
-      'metadata': Map<String, dynamic>.from(_metadata),
-    };
-    
-    // Add base points
-    if (isCorrect) {
-      tempState['totalPoints'] += question.points;
-    }
-    
-    // Apply each gamification strategy
-    for (var strategy in gamificationStrategies) {
-      strategy.applyStrategy(
-        quizState: tempState,
-        userAction: userAction,
-        updateState: (newState) {
-          tempState = newState;
-        },
-      );
-    }
-    
-    // Update state with calculated values
-    _totalPoints = tempState['totalPoints'];
-    _currentStreak = tempState['currentStreak'];
-    _metadata = tempState['metadata'];
+  /// Start quiz and record start time
+  void start() {
+    _startTime = DateTime.now();
+    reset();
   }
+  
+  /// Resume a previously saved quiz session
+  void resumeSession(Map<String, dynamic> savedState);
+  
+  /// Save current quiz session state
+  Map<String, dynamic> saveSession();
+  
+  /// Submit an answer and process it with gamification strategies
+  void submitAnswer(dynamic answer);
   
   /// Move to next question if possible
-  bool nextQuestion() {
-    if (_currentQuestionIndex < questions.length - 1) {
-      _currentQuestionIndex++;
-      return true;
-    }
-    return false;
-  }
+  bool nextQuestion();
   
   /// Move to previous question if possible
-  bool previousQuestion() {
-    if (_currentQuestionIndex > 0) {
-      _currentQuestionIndex--;
-      return true;
-    }
-    return false;
-  }
+  bool previousQuestion();
   
   /// Jump to a specific question index
-  bool goToQuestion(int index) {
-    if (index >= 0 && index < questions.length) {
-      _currentQuestionIndex = index;
-      return true;
-    }
-    return false;
-  }
+  bool goToQuestion(int index);
   
   /// Reset the quiz to its initial state
-  void reset() {
-    _currentQuestionIndex = 0;
-    _totalPoints = 0;
-    _currentStreak = 0;
-    _userAnswers = List.filled(questions.length, null);
-    // Keep metadata that needs to persist or reset as needed
+  void reset();
+  
+  /// End quiz and record end time
+  void end() {
+    _endTime = DateTime.now();
   }
+  
+  /// Track time spent on current question
+  void trackQuestionTime(String questionId, Duration time) {
+    if (!_questionTimeTracking.containsKey(questionId)) {
+      _questionTimeTracking[questionId] = [];
+    }
+    _questionTimeTracking[questionId]!.add(time);
+  }
+  
+  /// Submit user feedback for this quiz
+  void submitFeedback(Map<String, dynamic> feedback) {
+    _userFeedback = feedback;
+  }
+  
+  /// Get user feedback
+  Map<String, dynamic> get userFeedback => Map.unmodifiable(_userFeedback);
   
   /// Get quiz results for final display
-  Map<String, dynamic> getResults() {
-    return {
-      'quizId': id,
-      'quizTitle': title,
-      'totalPoints': _totalPoints,
-      'totalQuestions': questions.length,
-      'attemptedQuestions': _userAnswers.where((a) => a != null).length,
-      'streak': _currentStreak,
-      'metadata': _metadata,
-      'userAnswers': _userAnswers,
-    };
-  }
+  Map<String, dynamic> getResults();
+  
+  /// Get completion statistics (correct answers, completion percentage, etc.)
+  Map<String, dynamic> getStatistics();
+  
+  /// Export results to shareable format (JSON, PDF, etc.)
+  Future<String> exportResults(String format);
   
   /// Build UI for the current question
-  Widget buildCurrentQuestionWidget() {
-    if (questions.isEmpty) {
-      return const Center(child: Text('No questions available'));
-    }
-    
-    if (_currentQuestionIndex >= questions.length) {
-      return const Center(child: Text('Quiz completed'));
-    }
-    
-    return questions[_currentQuestionIndex].buildQuestionWidget();
-  }
+  Widget buildCurrentQuestionWidget();
   
   /// Build UI for all active gamification elements
-  List<Widget> buildGamificationWidgets() {
-    List<Widget> widgets = [];
-    
-    for (var strategy in gamificationStrategies) {
-      Widget? strategyWidget = strategy.buildStrategyWidget(currentState);
-      if (strategyWidget != null) {
-        widgets.add(strategyWidget);
-      }
-    }
-    
-    return widgets;
-  }
+  List<Widget> buildGamificationWidgets();
+  
+  /// Build UI for quiz summary/results
+  Widget buildSummaryWidget();
+  
+  /// Convert to JSON for persistence
+  Map<String, dynamic> toJson();
+  
+  /// Create Quiz from JSON (to be implemented by subclasses)
+  /// factory Quiz.fromJson(Map<String, dynamic> json);
 }
