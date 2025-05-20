@@ -4,6 +4,7 @@ import '../../../../core/models/question.dart';
 
 class TrueFalseQuestion extends Question {
   final bool correctAnswer;
+  final void Function(bool)? onAnswerSelected;
 
   TrueFalseQuestion({
     required super.id,
@@ -12,8 +13,13 @@ class TrueFalseQuestion extends Question {
     super.points,
     super.timeLimit,
     super.metadata,
+    this.onAnswerSelected,
     required this.correctAnswer,
   });
+
+  void notifyAnswerSelected(bool answer) {
+    onAnswerSelected?.call(answer);
+  }
 
   @override
   bool validateAnswer(dynamic answer) {
@@ -22,7 +28,10 @@ class TrueFalseQuestion extends Question {
 
   @override
   Widget buildQuestionWidget() {
-    return _TrueFalseQuestionWidget(question: this);
+    return _TrueFalseQuestionWidget(
+      question: this,
+      onAnswerSelected: notifyAnswerSelected,
+    );
   }
 
   @override
@@ -66,8 +75,12 @@ class TrueFalseQuestion extends Question {
 
 class _TrueFalseQuestionWidget extends StatefulWidget {
   final TrueFalseQuestion question;
+  final Function(bool) onAnswerSelected;
 
-  const _TrueFalseQuestionWidget({required this.question});
+  const _TrueFalseQuestionWidget({
+    required this.question,
+    required this.onAnswerSelected,
+  });
 
   @override
   _TrueFalseQuestionWidgetState createState() =>
@@ -76,6 +89,7 @@ class _TrueFalseQuestionWidget extends StatefulWidget {
 
 class _TrueFalseQuestionWidgetState extends State<_TrueFalseQuestionWidget> {
   bool? selectedAnswer;
+  bool answerSubmitted = false;
 
   @override
   Widget build(BuildContext context) {
@@ -96,11 +110,13 @@ class _TrueFalseQuestionWidgetState extends State<_TrueFalseQuestionWidget> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  selectedAnswer = true;
-                });
-              },
+              onPressed: answerSubmitted
+                  ? null
+                  : () {
+                      setState(() {
+                        selectedAnswer = true;
+                      });
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor:
                     selectedAnswer == true ? Colors.blue.shade300 : null,
@@ -112,11 +128,13 @@ class _TrueFalseQuestionWidgetState extends State<_TrueFalseQuestionWidget> {
               child: const Text('True', style: TextStyle(fontSize: 18)),
             ),
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  selectedAnswer = false;
-                });
-              },
+              onPressed: answerSubmitted
+                  ? null
+                  : () {
+                      setState(() {
+                        selectedAnswer = false;
+                      });
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor:
                     selectedAnswer == false ? Colors.blue.shade300 : null,
@@ -128,6 +146,26 @@ class _TrueFalseQuestionWidgetState extends State<_TrueFalseQuestionWidget> {
               child: const Text('False', style: TextStyle(fontSize: 18)),
             ),
           ],
+        ),
+        const SizedBox(height: 24),
+        Center(
+          child: ElevatedButton(
+            onPressed: (selectedAnswer != null && !answerSubmitted)
+                ? () {
+                    setState(() {
+                      answerSubmitted = true;
+                    });
+                    widget.onAnswerSelected(selectedAnswer!);
+                  }
+                : null,
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 40,
+                vertical: 16,
+              ),
+            ),
+            child: const Text('Submit Answer', style: TextStyle(fontSize: 18)),
+          ),
         ),
       ],
     );

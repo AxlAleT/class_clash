@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/models/question.dart';
+import '../../screens/quiz_play_screen.dart';
 
 class MultipleChoiceQuestion extends Question {
   final List<String> options;
@@ -154,6 +155,21 @@ class _MultipleChoiceQuestionWidgetState
                     ),
           );
         }).toList(),
+        const SizedBox(height: 24),
+        Center(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(200, 48),
+            ),
+            onPressed: selectedIndices.isNotEmpty
+                ? () {
+                    // Send notification with selected answer
+                    AnswerNotification(selectedIndices).dispatch(context);
+                  }
+                : null,
+            child: const Text('Submit Answer', style: TextStyle(fontSize: 16)),
+          ),
+        ),
       ],
     );
   }

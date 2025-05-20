@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../providers/quiz_providers.dart';
-import '../factories/gamification_factory.dart';
-import '../factories/question_factory.dart';
+import '../controllers/quiz_controller.dart';
 
 class QuizListScreen extends ConsumerWidget {
   const QuizListScreen({super.key});
@@ -12,7 +11,7 @@ class QuizListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Use quiz providers to fetch quiz data
-    final quizService = ref.watch(quizProvider);
+    final quizService = ref.watch(quizServiceProvider);
 
     // In a real app, you'd have a provider that returns a list of all quizzes
     // For now, we'll create sample quiz IDs and fetch their data
@@ -91,22 +90,14 @@ class QuizListScreen extends ConsumerWidget {
                     ),
                     trailing: ElevatedButton(
                       onPressed: () {
-                        // When button is pressed, initialize quiz state and navigate
-                        _initializeQuizAndNavigate(
-                          context,
-                          ref,
-                          quiz['id'] as String,
-                        );
+                        // When button is pressed, navigate to quiz play screen
+                        context.go('/quiz/play/${quiz['id']}');
                       },
                       child: const Text('Play'),
                     ),
                     onTap: () {
-                      // When card is tapped, initialize quiz state and navigate
-                      _initializeQuizAndNavigate(
-                        context,
-                        ref,
-                        quiz['id'] as String,
-                      );
+                      // When card is tapped, navigate to quiz play screen
+                      context.go('/quiz/play/${quiz['id']}');
                     },
                   ),
                 );
@@ -123,67 +114,5 @@ class QuizListScreen extends ConsumerWidget {
         label: const Text('Create Quiz'),
       ),
     );
-  }
-
-  // Helper method to initialize quiz state before navigation
-  void _initializeQuizAndNavigate(
-    BuildContext context,
-    WidgetRef ref,
-    String quizId,
-  ) {
-    // Get the quiz data
-    final quizService = ref.read(quizProvider);
-    final quizData = quizService.getQuizData(quizId);
-
-    // Get the quiz notifier to update state
-    final quizNotifier = ref.read(quizStateProvider.notifier);
-
-    // Reset the quiz state
-    quizNotifier.resetQuiz();
-
-    // Initialize questions from quiz data
-    List<Map<String, dynamic>> questionsData = List<Map<String, dynamic>>.from(
-      quizData['questions'] ?? [],
-    );
-
-    for (var questionData in questionsData) {
-      try {
-        final question = QuestionFactory.createQuestion(
-          questionData['type'] ?? '',
-          questionData['data'] ?? {},
-        );
-        quizNotifier.addQuestion(question);
-      } catch (e) {
-        // Handle error or log it
-        print("Error creating question: $e");
-      }
-    }
-
-    // Initialize gamification strategies
-    List<Map<String, dynamic>> gamificationData =
-        List<Map<String, dynamic>>.from(quizData['gamification'] ?? []);
-
-    for (var strategyData in gamificationData) {
-      try {
-        final strategy = GamificationFactory.createStrategy(
-          strategyData['type'] ?? '',
-          strategyData['data'] ?? {},
-        );
-        quizNotifier.addGamificationStrategy(strategy);
-      } catch (e) {
-        // Handle error or log it
-        print("Error creating gamification strategy: $e");
-      }
-    }
-
-    // Update metadata
-    quizNotifier.updateQuizMetadata({
-      'quizId': quizId,
-      'title': quizData['title'] ?? 'Untitled Quiz',
-      'totalQuestions': questionsData.length,
-    });
-
-    // Navigate to the quiz play screen
-    context.go('/quiz/play/$quizId');
   }
 }

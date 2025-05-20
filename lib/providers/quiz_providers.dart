@@ -4,175 +4,127 @@ import '../core/models/gamification_strategy.dart';
 import '../core/models/question.dart';
 import '../features/quiz/factories/gamification_factory.dart';
 import '../features/quiz/factories/question_factory.dart';
+import '../core/models/quiz.dart';
 
-// Quiz Service class to handle quiz data
+/// Service class to handle quiz data retrieval 
 class QuizService {
   // Method to get quiz data by ID
   Map<String, dynamic> getQuizData(String quizId) {
     // In a real app, this would fetch from an API or local storage
     // For now, returning mock data
     return {
+      'id': quizId,
       'title': 'Sample Quiz',
       'questions': [
         {
           'type': 'multiple_choice',
           'data': {
-            'id': '1', // Added id field
+            'id': '1',
             'title': 'What is the capital of France?',
             'description': 'Select the correct capital city.',
             'options': ['Paris', 'London', 'Berlin', 'Rome'],
-            'correctOptionIndices': [0], // Changed to use indices instead
+            'correctOptionIndices': [0],
             'points': 10,
           },
         },
-        // More questions would be here
+        {
+          'type': 'true_false',
+          'data': {
+            'id': '2',
+            'title': 'Flutter is developed by Google.',
+            'description': 'Indicate whether this statement is true or false.',
+            'correctAnswer': true,
+            'points': 5,
+          },
+        },
+        {
+          'type': 'multiple_choice',
+          'data': {
+            'id': '3',
+            'title': 'Which programming language is used for Flutter development?',
+            'description': 'Choose the language used to build Flutter applications.',
+            'options': ['JavaScript', 'Swift', 'Dart', 'Kotlin'],
+            'correctOptionIndices': [2],
+            'points': 15,
+          },
+        },
       ],
       'gamification': [
         {
           'type': 'points',
-          'data': {'basePoints': 10},
+          'data': {
+            'id': 'points_1',
+            'name': 'Points System',
+            'basePoints': 10
+          },
         },
         {
           'type': 'streak',
-          'data': {'bonusPoints': 5},
+          'data': {
+            'id': 'streak_1',
+            'name': 'Streak Bonus',
+            'bonusPoints': 5
+          },
         },
       ],
     };
   }
+  
+  /// Load a quiz with all its components instantiated
+  Quiz loadQuiz(String quizId) {
+    final quizData = getQuizData(quizId);
+    
+    // Process questions
+    final List<Question> questions = [];
+    for (var questionData in quizData['questions']) {
+      try {
+        final question = QuestionFactory.createQuestion(
+          questionData['type'],
+          questionData['data'],
+        );
+        questions.add(question);
+      } catch (e) {
+        print('Error creating question: $e');
+        // Handle error as needed
+      }
+    }
+    
+    // Process gamification strategies
+    final List<GamificationStrategy> strategies = [];
+    for (var strategyData in quizData['gamification']) {
+      try {
+        final strategy = GamificationFactory.createStrategy(
+          strategyData['type'],
+          strategyData['data'],
+        );
+        strategies.add(strategy);
+      } catch (e) {
+        print('Error creating gamification strategy: $e');
+        // Handle error as needed
+      }
+    }
+    
+    // Create and return Quiz instance
+    return Quiz(
+      id: quizData['id'],
+      title: quizData['title'],
+      questions: questions,
+      gamificationStrategies: strategies,
+    );
+  }
 }
 
 // Provider for quiz service
-final quizProvider = Provider<QuizService>((ref) {
+final quizServiceProvider = Provider<QuizService>((ref) {
   return QuizService();
 });
 
-// Proveedor para los tipos de preguntas disponibles
+// Provider for available question types
 final availableQuestionTypesProvider = Provider<List<String>>((ref) {
   return QuestionFactory.getAvailableQuestionTypes();
 });
 
-// Proveedor para las estrategias de gamificación disponibles
+// Provider for available gamification strategies
 final availableGamificationStrategiesProvider = Provider<List<String>>((ref) {
   return GamificationFactory.getAvailableStrategies();
 });
-
-// Estado para el quiz actual
-class QuizState {
-  final List<Question> questions;
-  final List<GamificationStrategy> gamificationStrategies;
-  final int currentQuestionIndex;
-  final int totalPoints;
-  final int currentStreak;
-  final Map<String, dynamic> metadata;
-
-  QuizState({
-    this.questions = const [],
-    this.gamificationStrategies = const [],
-    this.currentQuestionIndex = 0,
-    this.totalPoints = 0,
-    this.currentStreak = 0,
-    this.metadata = const {},
-  });
-
-  QuizState copyWith({
-    List<Question>? questions,
-    List<GamificationStrategy>? gamificationStrategies,
-    int? currentQuestionIndex,
-    int? totalPoints,
-    int? currentStreak,
-    Map<String, dynamic>? metadata,
-  }) {
-    return QuizState(
-      questions: questions ?? this.questions,
-      gamificationStrategies:
-          gamificationStrategies ?? this.gamificationStrategies,
-      currentQuestionIndex: currentQuestionIndex ?? this.currentQuestionIndex,
-      totalPoints: totalPoints ?? this.totalPoints,
-      currentStreak: currentStreak ?? this.currentStreak,
-      metadata: metadata ?? this.metadata,
-    );
-  }
-}
-
-// Proveedor para el estado del quiz
-final quizStateProvider = StateNotifierProvider<QuizNotifier, QuizState>((ref) {
-  return QuizNotifier();
-});
-
-class QuizNotifier extends StateNotifier<QuizState> {
-  QuizNotifier() : super(QuizState());
-
-  // Añadir una pregunta al quiz
-  void addQuestion(Question question) {
-    state = state.copyWith(questions: [...state.questions, question]);
-  }
-
-  // Añadir una estrategia de gamificación
-  void addGamificationStrategy(GamificationStrategy strategy) {
-    state = state.copyWith(
-      gamificationStrategies: [...state.gamificationStrategies, strategy],
-    );
-  }
-
-  // Avanzar a la siguiente pregunta
-  void nextQuestion() {
-    if (state.currentQuestionIndex < state.questions.length - 1) {
-      state = state.copyWith(
-        currentQuestionIndex: state.currentQuestionIndex + 1,
-      );
-    }
-  }
-
-  // Procesar una respuesta
-  void processAnswer(dynamic answer) {
-    Question currentQuestion = state.questions[state.currentQuestionIndex];
-    bool isCorrect = currentQuestion.validateAnswer(answer);
-
-    // Crear un mapa con la acción del usuario para las estrategias de gamificación
-    Map<String, dynamic> userAction = {
-      'type': 'answer',
-      'isCorrect': isCorrect,
-      'questionIndex': state.currentQuestionIndex,
-      'answer': answer,
-      'timeSpent': 0, // Esto se calcularía con el tiempo real
-    };
-
-    // Estado temporal para aplicar las estrategias
-    Map<String, dynamic> tempState = {
-      'totalPoints': state.totalPoints,
-      'currentStreak': state.currentStreak,
-      'metadata': state.metadata,
-    };
-
-    // Aplicar cada estrategia de gamificación
-    for (var strategy in state.gamificationStrategies) {
-      strategy.applyStrategy(
-        quizState: tempState,
-        userAction: userAction,
-        updateState: (newState) {
-          tempState = newState;
-        },
-      );
-    }
-
-    // Actualizar el estado con los valores calculados
-    state = state.copyWith(
-      totalPoints: tempState['totalPoints'],
-      currentStreak: tempState['currentStreak'],
-      metadata: tempState['metadata'],
-    );
-  }
-
-  // Reiniciar el quiz
-  void resetQuiz() {
-    state = QuizState(
-      questions: state.questions,
-      gamificationStrategies: state.gamificationStrategies,
-    );
-  }
-
-  // Update quiz metadata
-  void updateQuizMetadata(Map<String, dynamic> newMetadata) {
-    state = state.copyWith(metadata: {...state.metadata, ...newMetadata});
-  }
-}

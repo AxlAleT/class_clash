@@ -1,175 +1,104 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/models/gamification_strategy.dart';
-import '../../../core/models/question.dart';
 import '../../../providers/quiz_providers.dart';
-import '../factories/gamification_factory.dart';
-import '../factories/question_factory.dart';
+import '../../../core/models/quiz.dart';
 
-/// Controller to handle quiz flow and dynamic screen creation
-class QuizController extends StateNotifier<QuizState> {
+/// Controller to manage quiz state and UI interactions
+class QuizController extends StateNotifier<Quiz?> {
   final Ref ref;
 
-  QuizController(this.ref) : super(QuizState());
+  QuizController(this.ref) : super(null);
 
-  /// Load a quiz by ID from storage or API
+  /// Load a quiz by ID
   Future<void> loadQuiz(String quizId) async {
-    // Simulate loading quiz data
-    // In a real app, this would fetch from an API or local storage
-    final Map<String, dynamic> quizData = ref
-        .read(quizProvider)
-        .getQuizData(quizId);
-
-    // Process and load questions using the factory
-    final List<Question> questions = [];
-    for (var questionData in quizData['questions']) {
-      try {
-        final question = QuestionFactory.createQuestion(
-          questionData['type'],
-          questionData['data'],
-        );
-        questions.add(question);
-      } catch (e) {
-        debugPrint('Error creating question: $e');
-        // Handle error - perhaps log or show fallback question
-      }
-    }
-
-    // Process and load gamification strategies using the factory
-    final List<GamificationStrategy> strategies = [];
-    for (var strategyData in quizData['gamification']) {
-      try {
-        final strategy = GamificationFactory.createStrategy(
-          strategyData['type'],
-          strategyData['data'],
-        );
-        strategies.add(strategy);
-      } catch (e) {
-        debugPrint('Error creating gamification strategy: $e');
-        // Handle error
-      }
-    }
-
-    // Update state with loaded quiz
-    state = state.copyWith(
-      questions: questions,
-      gamificationStrategies: strategies,
-      metadata: {'quizId': quizId, 'quizTitle': quizData['title']},
-    );
+    final quizService = ref.read(quizServiceProvider);
+    final quiz = quizService.loadQuiz(quizId);
+    state = quiz;
   }
 
-  /// Create quiz question widgets dynamically
+  /// Check if a quiz is currently loaded
+  bool get isQuizLoaded => state != null;
+
+  /// Get the current quiz or throw an error if none is loaded
+  Quiz get currentQuiz {
+    if (state == null) {
+      throw Exception('No quiz is currently loaded');
+    }
+    return state!;
+  }
+
+  /// Submit an answer to the current question
+  void submitAnswer(dynamic answer) {
+    if (!isQuizLoaded) return;
+    
+    currentQuiz.submitAnswer(answer);
+    state = currentQuiz; // Trigger a state update
+    
+    // Optionally auto-advance to next question after a delay
+    Future.delayed(const Duration(seconds: 2), () {
+      proceedToNextQuestion();
+    });
+  }
+
+  /// Move to the next question
+  void proceedToNextQuestion() {
+    if (!isQuizLoaded) return;
+    
+    if (currentQuiz.nextQuestion()) {
+      state = currentQuiz; // Trigger a state update
+    }
+  }
+
+  /// Move to the previous question
+  void proceedToPreviousQuestion() {
+    if (!isQuizLoaded) return;
+    
+    if (currentQuiz.previousQuestion()) {
+      state = currentQuiz; // Trigger a state update
+    }
+  }
+
+  /// Reset the current quiz
+  void resetQuiz() {
+    if (!isQuizLoaded) return;
+    
+    currentQuiz.reset();
+    state = currentQuiz; // Trigger a state update
+  }
+
+  /// Create widget for the current question
   Widget buildCurrentQuestionWidget() {
-    if (state.questions.isEmpty) {
-      return const Center(child: Text('No questions available'));
+    if (!isQuizLoaded) {
+      return const Center(child: Text('No quiz loaded'));
     }
-
-    if (state.currentQuestionIndex >= state.questions.length) {
-      return const Center(child: Text('Quiz completed'));
-    }
-
-    // Get current question and build its widget
-    final currentQuestion = state.questions[state.currentQuestionIndex];
-    return currentQuestion.buildQuestionWidget();
+    
+    return currentQuiz.buildCurrentQuestionWidget();
   }
 
   /// Create gamification UI widgets
   List<Widget> buildGamificationWidgets() {
-    List<Widget> widgets = [];
-
-    for (var strategy in state.gamificationStrategies) {
-      // Extract current state for the strategy
-      final strategyState = {
-        'totalPoints': state.totalPoints,
-        'currentStreak': state.currentStreak,
-        'metadata': state.metadata,
-      };
-
-      // Get UI widget from the strategy
-      Widget? strategyWidget = strategy.buildStrategyWidget(strategyState);
-      if (strategyWidget != null) {
-        widgets.add(strategyWidget);
-      }
+    if (!isQuizLoaded) {
+      return [];
     }
-
-    return widgets;
-  }
-
-  /// Process an answer and apply gamification strategies
-  void submitAnswer(dynamic answer) {
-    if (state.questions.isEmpty ||
-        state.currentQuestionIndex >= state.questions.length) {
-      return;
-    }
-
-    Question currentQuestion = state.questions[state.currentQuestionIndex];
-    bool isCorrect = currentQuestion.validateAnswer(answer);
-
-    // Create action data for strategies
-    Map<String, dynamic> userAction = {
-      'type': 'answer',
-      'isCorrect': isCorrect,
-      'questionIndex': state.currentQuestionIndex,
-      'answer': answer,
-      'timeSpent': 0, // This would be calculated from actual time tracking
-    };
-
-    // Temporary state to apply strategies
-    Map<String, dynamic> tempState = {
-      'totalPoints': state.totalPoints,
-      'currentStreak': isCorrect ? state.currentStreak + 1 : 0,
-      'metadata': Map<String, dynamic>.from(state.metadata),
-    };
-
-    // Add base points
-    if (isCorrect) {
-      tempState['totalPoints'] += currentQuestion.points;
-    }
-
-    // Apply each gamification strategy
-    for (var strategy in state.gamificationStrategies) {
-      strategy.applyStrategy(
-        quizState: tempState,
-        userAction: userAction,
-        updateState: (newState) {
-          tempState = newState;
-        },
-      );
-    }
-
-    // Update state with calculated values
-    state = state.copyWith(
-      totalPoints: tempState['totalPoints'],
-      currentStreak: tempState['currentStreak'],
-      metadata: tempState['metadata'],
-    );
-
-    // Show feedback (this would be handled by the UI)
-
-    // After delay, move to next question
-    Future.delayed(const Duration(seconds: 2), () {
-      if (state.currentQuestionIndex < state.questions.length - 1) {
-        state = state.copyWith(
-          currentQuestionIndex: state.currentQuestionIndex + 1,
-        );
-      } else {
-        // Quiz completed - handle in UI
-      }
-    });
+    
+    return currentQuiz.buildGamificationWidgets();
   }
 
   /// Check if quiz is completed
-  bool get isQuizCompleted =>
-      state.currentQuestionIndex >= state.questions.length - 1;
+  bool get isQuizCompleted => isQuizLoaded && currentQuiz.isCompleted;
 
-  /// Get quiz completion data
+  /// Get quiz results
   Map<String, dynamic> getQuizResults() {
-    return {
-      'totalPoints': state.totalPoints,
-      'totalQuestions': state.questions.length,
-      'streak': state.currentStreak,
-      'metadata': state.metadata,
-    };
+    if (!isQuizLoaded) {
+      return {'error': 'No quiz loaded'};
+    }
+    
+    return currentQuiz.getResults();
   }
 }
+
+// Provider for the quiz controller
+final quizControllerProvider = StateNotifierProvider<QuizController, Quiz?>((ref) {
+  return QuizController(ref);
+});
