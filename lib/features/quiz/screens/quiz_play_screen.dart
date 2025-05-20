@@ -2,15 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../providers/quiz_providers.dart';
-import '../controllers/quiz_controller.dart';
-import '../../../core/models/quiz.dart';
-
-// Provider for the quiz controller
-final quizControllerProvider =
-    StateNotifierProvider.family<QuizController, Quiz?, String>(
-      (ref, quizId) => QuizController(ref)..loadQuiz(quizId),
-    );
+import '../controllers/quiz_play_controller.dart';
+import '../../../providers/quiz_controller_provider.dart';
+import '../utils/quiz_notifications.dart';
 
 class QuizPlayScreen extends ConsumerStatefulWidget {
   final String quizId;
@@ -22,51 +16,75 @@ class QuizPlayScreen extends ConsumerStatefulWidget {
 }
 
 class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
-  bool _answered = false;
   dynamic _selectedAnswer;
 
   @override
   void initState() {
     super.initState();
-    // Quiz is loaded automatically by the provider
+    // Start the quiz when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(quizControllerProvider(widget.quizId).notifier).startQuiz();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     // Watch the quiz state through the controller
-    final quiz = ref.watch(quizControllerProvider(widget.quizId));
+    final quizState = ref.watch(quizControllerProvider(widget.quizId));
     final controller = ref.read(quizControllerProvider(widget.quizId).notifier);
+    final currentQuestion = controller.currentQuestion;
 
-    // Check if quiz is still loading
-    if (quiz == null || quiz.questions.isEmpty) {
+    // Handle different quiz states
+    if (quizState.status == QuizStatus.loading) {
       return Scaffold(
         appBar: AppBar(title: const Text('Loading Quiz...')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    // Get current question information
-    final currentQuestionIndex = quiz.currentQuestionIndex;
-    final totalQuestions = quiz.questions.length;
-    final currentQuestion = quiz.currentQuestion;
-    if (currentQuestion == null) {
-      // Handle the case where there's no current question
+    if (quizState.status == QuizStatus.error) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Quiz Complete')),
-        body: const Center(child: Text('No more questions available')),
+        appBar: AppBar(title: const Text('Error')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(quizState.errorMessage ?? 'An unknown error occurred'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => context.go('/'),
+                child: const Text('Return Home'),
+              ),
+            ],
+          ),
+        ),
       );
     }
-    final progressValue = (currentQuestionIndex + 1) / totalQuestions;
+
+    if (quizState.status == QuizStatus.completed) {
+      return _buildCompletionScreen(controller);
+    }
+
+    // Check if we have a valid current question
+    if (currentQuestion == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Quiz Issue')),
+        body: const Center(child: Text('No question available')),
+      );
+    }
+
+    // Calculate progress
+    final progressValue = controller.progressPercentage;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Quiz ${quiz.title}'),
+        title: Text('Quiz ${controller.quiz?.title ?? ""}'),
         actions: [
           Center(
             child: Padding(
               padding: const EdgeInsets.only(right: 16.0),
               child: Text(
-                'Score: ${quiz.totalPoints}',
+                'Score: ${quizState.totalPoints}',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -87,14 +105,14 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
             ),
           ),
 
-          // Question counter
+          // Question counter and timer
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Question ${currentQuestionIndex + 1}/$totalQuestions',
+                  'Question ${quizState.currentQuestionIndex + 1}/${controller.quiz?.questions.length ?? 0}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
@@ -105,7 +123,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                     children: [
                       const Icon(Icons.timer, size: 20),
                       const SizedBox(width: 4),
-                      Text('${currentQuestion.timeLimit}s'),
+                      Text('${quizState.remainingTime}s'),
                     ],
                   ),
               ],
@@ -148,34 +166,39 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                       // This wrapping is important for animations and state preservation
                       return AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
-                        child: _answered
-                            ? Column(
-                                children: [
-                                  currentQuestion.buildFeedbackWidget(
-                                    _selectedAnswer,
-                                    currentQuestion.validateAnswer(
+                        child: quizState.isAnswerSubmitted
+                            ? KeyedSubtree(
+                                key: ValueKey('feedback_${quizState.currentQuestionIndex}'),
+                                child: Column(
+                                  children: [
+                                    currentQuestion.buildFeedbackWidget(
                                       _selectedAnswer,
+                                      currentQuestion.validateAnswer(
+                                        _selectedAnswer,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size(200, 48),
+                                    const SizedBox(height: 24),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize: const Size(200, 48),
+                                      ),
+                                      onPressed: () => _proceedToNextQuestion(controller),
+                                      child: Text(
+                                        controller.isLastQuestion
+                                            ? 'Finish Quiz'
+                                            : 'Next Question',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
                                     ),
-                                    onPressed: () =>
-                                        _proceedToNextQuestion(controller),
-                                    child: Text(
-                                      controller.isQuizCompleted
-                                          ? 'Finish Quiz'
-                                          : 'Next Question',
-                                      style: const TextStyle(fontSize: 16),
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               )
-                            : _wrapWithAnswerHandler(
-                                currentQuestion.buildQuestionWidget(),
-                                controller,
+                            : KeyedSubtree(
+                                key: ValueKey('question_${quizState.currentQuestionIndex}'),
+                                child: _wrapWithAnswerHandler(
+                                  currentQuestion.buildQuestionWidget(),
+                                  controller,
+                                ),
                               ),
                       );
                     },
@@ -186,7 +209,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
           ),
 
           // Dynamic gamification UI elements
-          ..._buildGamificationWidgets(controller, quiz),
+          ..._buildGamificationWidgets(controller),
         ],
       ),
     );
@@ -201,11 +224,8 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     // It allows us to show feedback before moving to the next question
     return NotificationListener<AnswerNotification>(
       onNotification: (notification) {
-        setState(() {
-          _answered = true;
-          _selectedAnswer = notification.answer;
-        });
-
+        _selectedAnswer = notification.answer;
+        
         // Process the answer in the controller
         controller.submitAnswer(notification.answer);
         return true;
@@ -216,25 +236,75 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
 
   // Method to proceed to the next question or end the quiz
   void _proceedToNextQuestion(QuizController controller) {
-    if (controller.isQuizCompleted) {
-      _showQuizCompletionDialog(controller.getQuizResults());
+    if (controller.isLastQuestion) {
+      controller.endQuiz();
     } else {
-      controller.proceedToNextQuestion();
+      controller.goToNextQuestion();
       setState(() {
-        _answered = false;
         _selectedAnswer = null;
       });
     }
   }
 
+  // Build completion screen
+  Widget _buildCompletionScreen(QuizController controller) {
+    final results = controller.getResults();
+    
+    return Scaffold(
+      appBar: AppBar(title: const Text('Quiz Complete')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: 80,
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Quiz Complete!',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Your score: ${results['totalPoints'] ?? 0} points',
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(200, 48),
+              ),
+              onPressed: () {
+                // Clean up the quiz safely
+                _disposeQuizController(controller);
+                context.go('/');
+              },
+              child: const Text('Return Home'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  // Safely clean up quiz resources without disposing the container
+  void _disposeQuizController(QuizController controller) {
+    // Release resources but don't dispose the container
+    controller.disposeQuiz();
+  }
+
   // Build gamification widgets from the controller
   List<Widget> _buildGamificationWidgets(
     QuizController controller,
-    Quiz quiz,
   ) {
-    // This is a simplified version - in a real app, you'd get these from the controller
-    // which would use the gamification factories
-
+    final quiz = controller.quiz;
+    if (quiz == null) return [];
+    
     // Check if we have a leaderboard strategy
     final hasLeaderboard = quiz.gamificationStrategies.any(
       (s) => s.strategyType == 'leaderboard',
@@ -274,7 +344,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                       'Morgan',
                     ];
                     final scores = {
-                      'You': quiz.totalPoints,
+                      'You': controller.state.totalPoints,
                       'Alex': 120,
                       'Jamie': 90,
                       'Taylor': 150,
@@ -335,38 +405,4 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
 
     return [];
   }
-
-  // Show quiz completion dialog
-  void _showQuizCompletionDialog(Map<String, dynamic> results) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Quiz Complete!'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Your score: ${results['totalPoints']} points'),
-            const SizedBox(height: 16),
-            const Text('Congratulations on completing the quiz!'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              context.go('/');
-            },
-            child: const Text('Return Home'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Custom notification for handling answers
-class AnswerNotification extends Notification {
-  final dynamic answer;
-
-  AnswerNotification(this.answer);
 }

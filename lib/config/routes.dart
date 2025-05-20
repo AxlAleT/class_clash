@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/home/screens/home_screen.dart';
-import '../features/quiz/screens/quiz_creation_screen.dart';
 import '../features/quiz/screens/quiz_list_screen.dart';
 import '../features/quiz/screens/quiz_play_screen.dart';
 
@@ -31,7 +30,10 @@ final GoRouter router = GoRouter(
     // Create quiz route
     GoRoute(
       path: '/create',
-      builder: (context, state) => const QuizCreationScreen(),
+      redirect: (context, state) {
+        // Implement later
+        return '/';
+      },
     ),
   ],
 

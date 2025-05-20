@@ -1,130 +1,257 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/models/gamification_strategy.dart';
-import '../core/models/question.dart';
-import '../features/quiz/factories/gamification_factory.dart';
-import '../features/quiz/factories/question_factory.dart';
+import '../features/quiz/factories/quiz_factory.dart';
+import '../features/quiz/factories/user_factory.dart';
 import '../core/models/quiz.dart';
+import '../core/models/user.dart';
 
-/// Service class to handle quiz data retrieval 
-class QuizService {
-  // Method to get quiz data by ID
-  Map<String, dynamic> getQuizData(String quizId) {
-    // In a real app, this would fetch from an API or local storage
-    // For now, returning mock data
-    return {
-      'id': quizId,
-      'title': 'Sample Quiz',
+/// Provider class that simulates REST API operations for quizzes
+class QuizProvider {
+  // Singleton pattern
+  static final QuizProvider _instance = QuizProvider._internal();
+  factory QuizProvider() => _instance;
+  
+  // Private constructor
+  QuizProvider._internal() {
+    // Initialize with mock data
+    _addMockQuizzes();
+  }
+
+  // Dependencies
+  final QuizFactory _quizFactory = QuizFactory();
+  final UserFactory _userFactory = UserFactory();
+  
+  // Mock data storage
+  final Map<String, Map<String, dynamic>> _quizData = {};
+  final Map<String, List<User>> _quizUsers = {};
+
+  // Mock server delay to simulate network requests
+  final Duration _mockDelay = const Duration(milliseconds: 300);
+  
+  // Generate mock quiz data
+  void _addMockQuizzes() {
+    // Multiple choice question for a quiz
+    final multipleChoiceQuestion1 = {
+      'id': 'q1',
+      'title': 'What is the capital of France?',
+      'description': 'Choose the correct answer.',
+      'points': 100,
+      'timeLimit': 30,
+      'questionType': 'multiple_choice',
+      'metadata': {
+        'options': ['London', 'Paris', 'Berlin', 'Rome'],
+        'correctOptionIndices': [1], // Paris
+        'allowMultipleSelections': false,
+        'randomizeOptions': true,
+      },
+    };
+
+    // Another multiple choice question
+    final multipleChoiceQuestion2 = {
+      'id': 'q2',
+      'title': 'Which programming languages are statically typed?',
+      'description': 'Select all that apply.',
+      'points': 200,
+      'timeLimit': 45,
+      'questionType': 'multiple_choice',
+      'metadata': {
+        'options': ['JavaScript', 'TypeScript', 'Python', 'Java', 'C++'],
+        'correctOptionIndices': [1, 3, 4], // TypeScript, Java, C++
+        'allowMultipleSelections': true,
+        'randomizeOptions': true,
+      },
+    };
+
+    // A points-based gamification strategy
+    final pointsStrategy = {
+      'id': 'gs1',
+      'name': 'Basic Points',
+      'basePoints': 10,
+      'speedBonusThreshold': 5,
+      'speedBonusPoints': 5,
+      'strategyType': 'PointsStrategy',
+    };
+
+    // Create a complete quiz
+    final quiz1 = {
+      'id': 'quiz_001',
+      'title': 'General Knowledge Quiz',
+      'description': 'Test your knowledge on various topics.',
+      'questions': [multipleChoiceQuestion1, multipleChoiceQuestion2],
+      'gamificationStrategies': [pointsStrategy],
+      'currentQuestionIndex': 0,
+      'totalPoints': 0,
+      'currentStreak': 0,
+      'type': 'standard', // Important to match with registered quiz types
+    };
+
+    // Programming quiz example
+    final quiz2 = {
+      'id': 'quiz_002',
+      'title': 'Dart Programming Basics',
+      'description': 'Test your knowledge of Dart programming fundamentals.',
       'questions': [
         {
-          'type': 'multiple_choice',
-          'data': {
-            'id': '1',
-            'title': 'What is the capital of France?',
-            'description': 'Select the correct capital city.',
-            'options': ['Paris', 'London', 'Berlin', 'Rome'],
-            'correctOptionIndices': [0],
-            'points': 10,
+          'id': 'q3',
+          'title': 'What keyword is used to declare a variable that can be assigned only once?',
+          'description': 'Choose the correct Dart keyword.',
+          'points': 100,
+          'timeLimit': 30,
+          'questionType': 'multiple_choice',
+          'metadata': {
+            'options': ['var', 'const', 'final', 'static'],
+            'correctOptionIndices': [2], // final
+            'allowMultipleSelections': false,
+            'randomizeOptions': true,
           },
-        },
-        {
-          'type': 'true_false',
-          'data': {
-            'id': '2',
-            'title': 'Flutter is developed by Google.',
-            'description': 'Indicate whether this statement is true or false.',
-            'correctAnswer': true,
-            'points': 5,
-          },
-        },
-        {
-          'type': 'multiple_choice',
-          'data': {
-            'id': '3',
-            'title': 'Which programming language is used for Flutter development?',
-            'description': 'Choose the language used to build Flutter applications.',
-            'options': ['JavaScript', 'Swift', 'Dart', 'Kotlin'],
-            'correctOptionIndices': [2],
-            'points': 15,
-          },
-        },
+        }
       ],
-      'gamification': [
-        {
-          'type': 'points',
-          'data': {
-            'id': 'points_1',
-            'name': 'Points System',
-            'basePoints': 10
-          },
-        },
-        {
-          'type': 'streak',
-          'data': {
-            'id': 'streak_1',
-            'name': 'Streak Bonus',
-            'bonusPoints': 5
-          },
-        },
-      ],
+      'gamificationStrategies': [pointsStrategy],
+      'type': 'standard',
     };
+
+    // Add the quizzes to our mock data store
+    _quizData['quiz_001'] = quiz1;
+    _quizData['quiz_002'] = quiz2;
+    
+    // Add some mock users for this quiz
+    final user1 = {
+      'id': 'user_001',
+      'displayName': 'John Doe',
+      'joinedAt': DateTime.now().subtract(const Duration(days: 10)).toIso8601String(),
+      'type': 'standard',
+      'quizScores': {'quiz_001': 300},
+      'quizCompletion': {'quiz_001': true},
+    };
+    
+    final user2 = {
+      'id': 'user_002',
+      'displayName': 'Jane Smith',
+      'joinedAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
+      'type': 'standard',
+      'quizScores': {'quiz_001': 250},
+      'quizCompletion': {'quiz_001': true},
+    };
+    
+    _quizUsers['quiz_001'] = [
+      _userFactory.createFromJson(user1),
+      _userFactory.createFromJson(user2)
+    ];
   }
   
-  /// Load a quiz with all its components instantiated
-  Quiz loadQuiz(String quizId) {
-    final quizData = getQuizData(quizId);
+  /// Load a quiz by its ID
+  Future<Quiz?> loadQuiz(String quizId) async {
+    // Simulate network delay
+    await Future.delayed(_mockDelay);
     
-    // Process questions
-    final List<Question> questions = [];
-    for (var questionData in quizData['questions']) {
-      try {
-        final question = QuestionFactory.createQuestion(
-          questionData['type'],
-          questionData['data'],
-        );
-        questions.add(question);
-      } catch (e) {
-        print('Error creating question: $e');
-        // Handle error as needed
-      }
+    if (!_quizData.containsKey(quizId)) {
+      return null;
     }
     
-    // Process gamification strategies
-    final List<GamificationStrategy> strategies = [];
-    for (var strategyData in quizData['gamification']) {
-      try {
-        final strategy = GamificationFactory.createStrategy(
-          strategyData['type'],
-          strategyData['data'],
-        );
-        strategies.add(strategy);
-      } catch (e) {
-        print('Error creating gamification strategy: $e');
-        // Handle error as needed
-      }
+    return _quizFactory.createFromJson(_quizData[quizId]!);
+  }
+  
+  /// Get quiz data without creating a Quiz instance
+  Future<Map<String, dynamic>?> getQuizData(String quizId) async {
+    // Simulate network delay
+    await Future.delayed(_mockDelay);
+    
+    if (!_quizData.containsKey(quizId)) {
+      return null;
     }
     
-    // Create and return Quiz instance
-    return Quiz(
-      id: quizData['id'],
-      title: quizData['title'],
-      questions: questions,
-      gamificationStrategies: strategies,
-    );
+    return Map<String, dynamic>.from(_quizData[quizId]!);
+  }
+  
+  /// Create a new quiz
+  Future<String> createQuiz(Map<String, dynamic> quizData) async {
+    // Simulate network delay
+    await Future.delayed(_mockDelay);
+    
+    final String quizId = quizData['id'] ?? 'quiz_${DateTime.now().millisecondsSinceEpoch}';
+    quizData['id'] = quizId;
+    
+    _quizData[quizId] = quizData;
+    
+    return quizId;
+  }
+  
+  /// Update an existing quiz
+  Future<bool> updateQuiz(String quizId, Map<String, dynamic> quizData) async {
+    // Simulate network delay
+    await Future.delayed(_mockDelay);
+    
+    if (!_quizData.containsKey(quizId)) {
+      return false;
+    }
+    
+    quizData['id'] = quizId; // Ensure ID is preserved
+    _quizData[quizId] = quizData;
+    
+    return true;
+  }
+  
+  /// Delete a quiz
+  Future<bool> deleteQuiz(String quizId) async {
+    // Simulate network delay
+    await Future.delayed(_mockDelay);
+    
+    if (!_quizData.containsKey(quizId)) {
+      return false;
+    }
+    
+    _quizData.remove(quizId);
+    _quizUsers.remove(quizId);
+    
+    return true;
+  }
+  
+  /// List all quizzes
+  Future<List<Quiz>> listQuizzes() async {
+    // Simulate network delay
+    await Future.delayed(_mockDelay);
+    
+    final List<Quiz> quizzes = [];
+    
+    for (final quizJson in _quizData.values) {
+      quizzes.add(_quizFactory.createFromJson(quizJson));
+    }
+    
+    return quizzes;
+  }
+  
+  /// Get quiz participants
+  Future<List<User>> getQuizParticipants(String quizId) async {
+    // Simulate network delay
+    await Future.delayed(_mockDelay);
+    
+    if (!_quizUsers.containsKey(quizId)) {
+      return [];
+    }
+    
+    return List<User>.from(_quizUsers[quizId]!);
+  }
+  
+  /// Add participant to a quiz
+  Future<bool> addParticipant(String quizId, User user) async {
+    // Simulate network delay
+    await Future.delayed(_mockDelay);
+    
+    if (!_quizData.containsKey(quizId)) {
+      return false;
+    }
+    
+    if (!_quizUsers.containsKey(quizId)) {
+      _quizUsers[quizId] = [];
+    }
+    
+    _quizUsers[quizId]!.add(user);
+    
+    return true;
   }
 }
 
-// Provider for quiz service
-final quizServiceProvider = Provider<QuizService>((ref) {
-  return QuizService();
-});
-
-// Provider for available question types
-final availableQuestionTypesProvider = Provider<List<String>>((ref) {
-  return QuestionFactory.getAvailableQuestionTypes();
-});
-
-// Provider for available gamification strategies
-final availableGamificationStrategiesProvider = Provider<List<String>>((ref) {
-  return GamificationFactory.getAvailableStrategies();
-});
+/// Riverpod provider for QuizProvider singleton
+final quizProviderProvider = Provider<QuizProvider>((ref) => QuizProvider());

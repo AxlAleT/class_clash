@@ -19,6 +19,7 @@
 | **Strategy**           | **Description / Use Case**                                                                  |
 |------------------------|---------------------------------------------------------------------------------------------|
 | Points & Speed Bonuses | Award more points for faster answers; boosts urgency and competitiveness                    |
+| **PointsStrategy**     | Implements a points system with base points and optional speed bonuses for quick answers.   |
 | Leaderboards / Podiums | Display top scorers live; motivates students to compete and track performance               |
 | Avatars & Characters   | Allow students to customize a game character; builds ownership and excitement               |
 | Streaks & Combos       | Reward consecutive correct answers; encourages consistency and focus                        |

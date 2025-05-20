@@ -1,25 +1,44 @@
-// Archivo: lib/features/quiz/models/gamification/points_strategy.dart
 import 'package:flutter/material.dart';
-
 import '../../../../core/models/gamification_strategy.dart';
 
 class PointsStrategy extends GamificationStrategy {
   final int basePoints;
-  final int bonusTimeThreshold; // en segundos
-  final int timeBonus;
-  final int streakBonus;
-  final int streakThreshold;
+  final int speedBonusThreshold; // Time in seconds for speed bonus
+  final int speedBonusPoints;
 
   PointsStrategy({
-    required super.id,
-    required super.name,
-    super.configuration,
+    required String id,
+    required String name,
     this.basePoints = 10,
-    this.bonusTimeThreshold = 5,
-    this.timeBonus = 5,
-    this.streakBonus = 2,
-    this.streakThreshold = 3,
-  });
+    this.speedBonusThreshold = 5,
+    this.speedBonusPoints = 5,
+    Map<String, dynamic> configuration = const <String, dynamic>{},
+    int priority = 1,
+    Map<String, dynamic> conditions = const <String, dynamic>{},
+    Map<String, dynamic>? analyticsData,
+  }) : super(
+          id: id,
+          name: name,
+          configuration: configuration,
+          priority: priority,
+          conditions: conditions,
+          analyticsData: analyticsData,
+        );
+
+  /// Factory method to create a PointsStrategy from JSON
+  static PointsStrategy fromJson(Map<String, dynamic> json) {
+    return PointsStrategy(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      basePoints: json['basePoints'] as int? ?? 10,
+      speedBonusThreshold: json['speedBonusThreshold'] as int? ?? 5,
+      speedBonusPoints: json['speedBonusPoints'] as int? ?? 5,
+      configuration: json['configuration'] as Map<String, dynamic>? ?? <String, dynamic>{},
+      priority: json['priority'] as int? ?? 1,
+      conditions: json['conditions'] as Map<String, dynamic>? ?? <String, dynamic>{},
+      analyticsData: json['analyticsData'] as Map<String, dynamic>?,
+    );
+  }
 
   @override
   void applyStrategy({
@@ -27,43 +46,26 @@ class PointsStrategy extends GamificationStrategy {
     required dynamic userAction,
     required Function(dynamic) updateState,
   }) {
-    // Implementación para calcular puntos con bonificación por tiempo
-    if (userAction['type'] == 'answer' && userAction['isCorrect']) {
-      int pointsEarned = basePoints;
+    final int timeTaken = userAction['timeTaken'] ?? 0;
+    final bool isCorrect = userAction['isCorrect'] ?? false;
 
-      // Bonificación por tiempo rápido
-      if (userAction['timeSpent'] < bonusTimeThreshold) {
-        pointsEarned += timeBonus;
-      }
+    if (!isCorrect) return;
 
-      // Bonificación por racha de respuestas correctas
-      if (quizState['currentStreak'] >= streakThreshold) {
-        pointsEarned += streakBonus;
-      }
-
-      // Actualizar el estado del quiz
-      var newState = <String, dynamic>{...quizState};
-      newState['totalPoints'] = (quizState['totalPoints'] ?? 0) + pointsEarned;
-      newState['currentStreak'] = (quizState['currentStreak'] ?? 0) + 1;
-      newState['lastPointsEarned'] = pointsEarned;
-
-      updateState(newState);
-    } else if (userAction['type'] == 'answer' && !userAction['isCorrect']) {
-      // Reiniciar la racha si la respuesta es incorrecta
-      var newState = <String, dynamic>{...quizState};
-      newState['currentStreak'] = 0;
-      newState['lastPointsEarned'] = 0;
-
-      updateState(newState);
+    int points = basePoints;
+    if (timeTaken <= speedBonusThreshold) {
+      points += speedBonusPoints;
     }
+
+    final int currentPoints = quizState['points'] ?? 0;
+    updateState({'points': currentPoints + points});
   }
 
   @override
   Widget buildStrategyWidget(dynamic quizState) {
-    return _PointsWidget(
-      points: quizState['totalPoints'] ?? 0,
-      lastPointsEarned: quizState['lastPointsEarned'],
-      streak: quizState['currentStreak'] ?? 0,
+    final int points = quizState['points'] ?? 0;
+    return Text(
+      'Points: $points',
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
     );
   }
 
@@ -72,74 +74,17 @@ class PointsStrategy extends GamificationStrategy {
     return {
       'id': id,
       'name': name,
-      'configuration': configuration,
       'basePoints': basePoints,
-      'bonusTimeThreshold': bonusTimeThreshold,
-      'timeBonus': timeBonus,
-      'streakBonus': streakBonus,
-      'streakThreshold': streakThreshold,
-      'type': strategyType,
+      'speedBonusThreshold': speedBonusThreshold,
+      'speedBonusPoints': speedBonusPoints,
+      'configuration': configuration,
+      'priority': priority,
+      'conditions': conditions,
+      'analyticsData': analyticsData,
+      'strategyType': strategyType,
     };
   }
 
   @override
-  String get strategyType => 'points';
-
-  factory PointsStrategy.fromJson(Map<String, dynamic> json) {
-    return PointsStrategy(
-      id: json['id'],
-      name: json['name'],
-      configuration: json['configuration'] ?? <String, dynamic>{},
-      basePoints: json['basePoints'] ?? 10,
-      bonusTimeThreshold: json['bonusTimeThreshold'] ?? 5,
-      timeBonus: json['timeBonus'] ?? 5,
-      streakBonus: json['streakBonus'] ?? 2,
-      streakThreshold: json['streakThreshold'] ?? 3,
-    );
-  }
-}
-
-// Widget placeholder para mostrar puntos
-class _PointsWidget extends StatelessWidget {
-  final int points;
-  final int? lastPointsEarned;
-  final int streak;
-
-  const _PointsWidget({
-    required this.points,
-    this.lastPointsEarned,
-    required this.streak,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text('Puntos: $points', style: Theme.of(context).textTheme.titleLarge),
-        if (streak > 0)
-          Row(
-            children: [
-              const Icon(Icons.local_fire_department, color: Colors.orange),
-              Text(
-                'Racha: $streak',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ],
-          ),
-        if (lastPointsEarned != null && lastPointsEarned! > 0)
-          AnimatedContainer(
-            duration: const Duration(seconds: 1),
-            child: Text(
-              '+$lastPointsEarned',
-              style: const TextStyle(
-                color: Colors.green,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
+  String get strategyType => 'PointsStrategy';
 }

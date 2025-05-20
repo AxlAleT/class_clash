@@ -11,15 +11,15 @@ abstract class Quiz {
   final List<Question> questions;
   final List<GamificationStrategy> gamificationStrategies;
 
-  // State properties
+  // State properties - now mutable
   int _currentQuestionIndex;
   int _totalPoints;
   int _currentStreak;
-  Map<String, dynamic> _metadata;
-  List<dynamic> _userAnswers;
+  final Map<String, dynamic> _metadata;
+  final List<dynamic> _userAnswers;
   DateTime? _startTime;
   DateTime? _endTime;
-  Map<String, List<Duration>> _questionTimeTracking; // Question ID -> List of durations spent
+  final Map<String, List<Duration>> _questionTimeTracking; // Question ID -> List of durations spent
   Map<String, dynamic> _userFeedback;
   
   Quiz({
@@ -64,6 +64,13 @@ abstract class Quiz {
       ? _endTime!.difference(_startTime!) 
       : null;
   
+  /// Get access to user answers (read-only)
+  List<dynamic> get userAnswers => List.unmodifiable(_userAnswers);
+  
+  /// Get access to question time tracking data (read-only)
+  Map<String, List<Duration>> get questionTimeTracking => 
+      Map.unmodifiable(_questionTimeTracking);
+  
   /// Get current quiz state as a map for use with strategies
   Map<String, dynamic> get currentState => {
     'totalPoints': _totalPoints,
@@ -71,6 +78,58 @@ abstract class Quiz {
     'metadata': Map<String, dynamic>.from(_metadata),
   };
   
+  // Protected setters for subclasses
+  /// Set the current question index
+  @protected
+  set currentQuestionIndexValue(int value) => _currentQuestionIndex = value;
+  
+  /// Set the total points
+  @protected
+  set totalPointsValue(int value) => _totalPoints = value;
+  
+  /// Set the current streak
+  @protected
+  set currentStreakValue(int value) => _currentStreak = value;
+  
+  /// Set the start time
+  @protected
+  set startTimeValue(DateTime? value) => _startTime = value;
+  
+  /// Set the end time
+  @protected
+  set endTimeValue(DateTime? value) => _endTime = value;
+  
+  /// Update or add user answer at specific index
+  @protected
+  void setUserAnswer(int index, dynamic answer) {
+    if (index >= 0 && index < _userAnswers.length) {
+      _userAnswers[index] = answer;
+    } else if (index >= _userAnswers.length) {
+      // Extend the list if needed
+      while (_userAnswers.length <= index) {
+        _userAnswers.add(null);
+      }
+      _userAnswers[index] = answer;
+    }
+  }
+  
+  /// Clear all user answers
+  @protected
+  void clearUserAnswers() {
+    _userAnswers.clear();
+  }
+  
+  /// Add user answer to the end of the list
+  @protected
+  void addUserAnswer(dynamic answer) {
+    _userAnswers.add(answer);
+  }
+
+  @protected
+  void setStartTime(DateTime time) {
+    _startTime = time;
+  }
+
   /// Start quiz and record start time
   void start() {
     _startTime = DateTime.now();
@@ -97,6 +156,13 @@ abstract class Quiz {
   
   /// Reset the quiz to its initial state
   void reset();
+  
+  /// Restart a completed quiz for a new attempt
+  void restart() {
+    _endTime = null;
+    _startTime = DateTime.now();
+    reset();
+  }
   
   /// End quiz and record end time
   void end() {
