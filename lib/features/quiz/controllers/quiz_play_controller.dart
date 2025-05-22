@@ -1,13 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/quiz.dart';
 import '../../../core/models/user.dart';
 import '../../../core/models/question.dart';
-import '../../../core/models/gamification_strategy.dart';
 import '../../../providers/quiz_providers.dart';
 
 /// Status of the quiz session
@@ -63,6 +60,9 @@ class QuizController extends StateNotifier<QuizState> {
   /// ID of the quiz being managed
   final String quizId;
 
+  /// ID of the user taking the quiz (optional)
+  final String? userId;
+
   /// The quiz provider to fetch data
   final QuizProvider _quizProvider;
 
@@ -79,6 +79,7 @@ class QuizController extends StateNotifier<QuizState> {
     required this.quizId,
     required QuizProvider quizProvider,
     this.user,
+    this.userId,
   }) : _quizProvider = quizProvider,
        super(QuizState(status: QuizStatus.loading)) {
     // Load the quiz when controller is created
@@ -89,9 +90,9 @@ class QuizController extends StateNotifier<QuizState> {
   Future<void> _loadQuiz() async {
     try {
       state = state.copyWith(status: QuizStatus.loading);
-      
-      quiz = await _quizProvider.loadQuiz(quizId);
-      
+
+      quiz = await _quizProvider.loadQuiz(quizId, userId: userId);
+
       if (quiz == null) {
         state = state.copyWith(
           status: QuizStatus.error,
@@ -99,7 +100,7 @@ class QuizController extends StateNotifier<QuizState> {
         );
         return;
       }
-      
+
       state = state.copyWith(
         status: QuizStatus.initial,
         currentQuestionIndex: quiz!.currentQuestionIndex,
@@ -128,7 +129,7 @@ class QuizController extends StateNotifier<QuizState> {
       _setError('Cannot start quiz: Quiz not loaded');
       return;
     }
-    
+
     try {
       quiz!.start();
       state = state.copyWith(
@@ -159,14 +160,14 @@ class QuizController extends StateNotifier<QuizState> {
   /// End the quiz and calculate final results
   void endQuiz() {
     if (quiz == null) return;
-    
+
     _stopQuestionTimer();
-    
+
     // Submit any remaining answer if not submitted yet
     if (!state.isAnswerSubmitted && currentQuestion != null) {
       quiz!.submitAnswer(null);
     }
-    
+
     quiz!.end();
     state = state.copyWith(
       status: QuizStatus.completed,
@@ -179,7 +180,43 @@ class QuizController extends StateNotifier<QuizState> {
       user!.completeQuiz(quiz!.id, finalScore: results['totalPoints'] as int);
     }
   }
-  
+
+  /// Submit quiz results to the server
+  Future<bool> submitQuizResultsToServer() async {
+    if (quiz == null) {
+      _setError('Cannot submit results: Quiz not loaded');
+      return false;
+    }
+
+    try {
+      // Ensure the quiz is completed
+      if (state.status != QuizStatus.completed) {
+        endQuiz();
+      }
+
+      // Use the quiz's toJson method to get the current state with all answers and results
+      final quizData = quiz!.toJson();
+
+      // Add user ID to quiz data if available
+      if (userId != null) {
+        quizData['userId'] = userId;
+      }
+
+      // Send the results to the server through the provider
+      final success = await _quizProvider.submitQuizResults(quizId, quizData);
+
+      if (!success) {
+        _setError('Failed to submit quiz results: Server error');
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      _setError('Failed to submit quiz results: $e');
+      return false;
+    }
+  }
+
   /// Clean up all resources associated with this quiz instance
   void disposeQuiz() {
     _stopQuestionTimer();
@@ -189,10 +226,10 @@ class QuizController extends StateNotifier<QuizState> {
   /// Reset the quiz for a new attempt
   void resetQuiz() {
     if (quiz == null) return;
-    
+
     _stopQuestionTimer();
     quiz!.reset();
-    
+
     state = state.copyWith(
       status: QuizStatus.initial,
       currentQuestionIndex: quiz!.currentQuestionIndex,
@@ -227,7 +264,7 @@ class QuizController extends StateNotifier<QuizState> {
   /// Move to the next question
   bool goToNextQuestion() {
     if (quiz == null) return false;
-    
+
     if (isLastQuestion) {
       endQuiz();
       return false;
@@ -243,7 +280,7 @@ class QuizController extends StateNotifier<QuizState> {
   /// Move to the previous question
   bool goToPreviousQuestion() {
     if (quiz == null) return false;
-    
+
     final moved = quiz!.previousQuestion();
     if (moved) {
       _resetQuestionState();
@@ -254,7 +291,7 @@ class QuizController extends StateNotifier<QuizState> {
   /// Jump to a specific question by index
   bool goToQuestion(int index) {
     if (quiz == null) return false;
-    
+
     final moved = quiz!.goToQuestion(index);
     if (moved) {
       _resetQuestionState();
@@ -271,7 +308,7 @@ class QuizController extends StateNotifier<QuizState> {
   /// Resume a saved quiz session
   void resumeSession(Map<String, dynamic> sessionData) {
     if (quiz == null) return;
-    
+
     quiz!.resumeSession(sessionData);
     _resetQuestionState();
     state = state.copyWith(
@@ -344,7 +381,7 @@ class QuizController extends StateNotifier<QuizState> {
   /// Reset the state for a new question
   void _resetQuestionState() {
     if (quiz == null) return;
-    
+
     state = state.copyWith(
       isAnswerSubmitted: false,
       currentQuestionIndex: quiz!.currentQuestionIndex,

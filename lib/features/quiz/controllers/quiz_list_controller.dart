@@ -25,22 +25,22 @@ class QuizListController extends StateNotifier<AsyncValue<List<Quiz>>> {
       state = AsyncValue.error(e, stackTrace);
     }
   }
-  
+
   /// Get the type of a quiz based on metadata or default to "standard"
   String getQuizType(Quiz quiz) {
     // Since we can't modify Quiz class, we'll extract type from metadata if available
     if (quiz.metadata.containsKey('type')) {
       return quiz.metadata['type'] as String;
     }
-    
+
     // Check if it has time limits on questions
     bool hasTimeLimits = quiz.questions.any((q) => q.timeLimit > 0);
-    
+
     // Determine type based on available information
     if (hasTimeLimits) {
       return 'timed';
     }
-    
+
     return 'standard';
   }
 }

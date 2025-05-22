@@ -11,7 +11,7 @@ class QuizListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final quizzesAsync = ref.watch(quizListControllerProvider);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Available Quizzes'),
@@ -31,7 +31,7 @@ class QuizListScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 16),
-              Text('Error loading quizzes: $error', 
+              Text('Error loading quizzes: $error',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red),
               ),
@@ -61,9 +61,9 @@ class QuizListScreen extends ConsumerWidget {
 
 class _QuizListView extends StatelessWidget {
   final List<Quiz> quizzes;
-  
+
   const _QuizListView({required this.quizzes});
-  
+
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
@@ -79,14 +79,14 @@ class _QuizListView extends StatelessWidget {
 
 class _QuizCard extends ConsumerWidget {
   final Quiz quiz;
-  
+
   const _QuizCard({required this.quiz});
-  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Get quiz type from controller
     final quizType = ref.read(quizListControllerProvider.notifier).getQuizType(quiz);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
@@ -132,21 +132,21 @@ class _QuizCard extends ConsumerWidget {
       ),
     );
   }
-  
+
   // Build quiz type chip directly in the card
   Widget _buildQuizTypeChip(BuildContext context, String type) {
     return Chip(
       label: Text(type.toUpperCase()),
       backgroundColor: _getChipColor(type),
       labelStyle: const TextStyle(
-        color: Colors.white, 
+        color: Colors.white,
         fontWeight: FontWeight.bold,
         fontSize: 12,
       ),
       padding: EdgeInsets.zero,
     );
   }
-  
+
   Color _getChipColor(String type) {
     switch(type.toLowerCase()) {
       case 'standard':
@@ -163,9 +163,9 @@ class _QuizCard extends ConsumerWidget {
 
 class _QuizActions extends StatelessWidget {
   final Quiz quiz;
-  
+
   const _QuizActions({required this.quiz});
-  
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -205,7 +205,7 @@ class _QuizActions extends StatelessWidget {
 
 class _EmptyQuizList extends StatelessWidget {
   const _EmptyQuizList();
-  
+
   @override
   Widget build(BuildContext context) {
     return Center(

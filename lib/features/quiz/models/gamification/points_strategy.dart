@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/models/gamification_strategy.dart';
 
 class PointsStrategy extends GamificationStrategy {
@@ -7,23 +8,16 @@ class PointsStrategy extends GamificationStrategy {
   final int speedBonusPoints;
 
   PointsStrategy({
-    required String id,
-    required String name,
+    required super.id,
+    required super.name,
     this.basePoints = 10,
     this.speedBonusThreshold = 5,
     this.speedBonusPoints = 5,
-    Map<String, dynamic> configuration = const <String, dynamic>{},
-    int priority = 1,
-    Map<String, dynamic> conditions = const <String, dynamic>{},
-    Map<String, dynamic>? analyticsData,
-  }) : super(
-          id: id,
-          name: name,
-          configuration: configuration,
-          priority: priority,
-          conditions: conditions,
-          analyticsData: analyticsData,
-        );
+    super.configuration,
+    super.priority,
+    super.conditions,
+    super.analyticsData,
+  });
 
   /// Factory method to create a PointsStrategy from JSON
   static PointsStrategy fromJson(Map<String, dynamic> json) {
@@ -33,9 +27,11 @@ class PointsStrategy extends GamificationStrategy {
       basePoints: json['basePoints'] as int? ?? 10,
       speedBonusThreshold: json['speedBonusThreshold'] as int? ?? 5,
       speedBonusPoints: json['speedBonusPoints'] as int? ?? 5,
-      configuration: json['configuration'] as Map<String, dynamic>? ?? <String, dynamic>{},
+      configuration:
+          json['configuration'] as Map<String, dynamic>? ?? <String, dynamic>{},
       priority: json['priority'] as int? ?? 1,
-      conditions: json['conditions'] as Map<String, dynamic>? ?? <String, dynamic>{},
+      conditions:
+          json['conditions'] as Map<String, dynamic>? ?? <String, dynamic>{},
       analyticsData: json['analyticsData'] as Map<String, dynamic>?,
     );
   }

@@ -1,46 +1,38 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
-import '../../../../core/models/quiz.dart';
-import '../../../../core/models/question.dart';
 import '../../../../core/models/gamification_strategy.dart';
+import '../../../../core/models/question.dart';
+import '../../../../core/models/quiz.dart';
 
 /// Standard implementation of the Quiz abstract class
 class StandardQuiz extends Quiz {
   StandardQuiz({
-    required String id,
-    required String title,
-    String? description,
-    required List<Question> questions,
-    List<GamificationStrategy> gamificationStrategies = const [],
-    int currentQuestionIndex = 0,
-    int totalPoints = 0,
-    int currentStreak = 0,
-    Map<String, dynamic>? metadata,
+    required super.id,
+    required super.title,
+    super.description,
+    required super.questions,
+    super.gamificationStrategies,
+    super.currentQuestionIndex,
+    super.totalPoints,
+    super.currentStreak,
+    super.metadata,
     List<dynamic>? userAnswers,
-    DateTime? startTime,
-    DateTime? endTime,
+    super.startTime,
+    super.endTime,
     Map<String, List<Duration>>? questionTimeTracking,
     Map<String, dynamic>? userFeedback,
+    required user,
   }) : super(
-          id: id,
-          title: title,
-          description: description,
-          questions: questions,
-          gamificationStrategies: gamificationStrategies,
-          currentQuestionIndex: currentQuestionIndex,
-          totalPoints: totalPoints,
-          currentStreak: currentStreak,
-          metadata: metadata,
-          userAnswers: userAnswers ?? [],
-          startTime: startTime,
-          endTime: endTime,
-          questionTimeTracking: questionTimeTracking ?? {},
-          userFeedback: userFeedback ?? {},
-        );
+         userAnswers: userAnswers ?? [],
+         questionTimeTracking: questionTimeTracking ?? {},
+         userFeedback: userFeedback ?? {},
+         user: user,
+       );
 
   @override
-  void start(){
+  void start() {
     setStartTime(DateTime.now());
     reset();
   }
@@ -50,23 +42,25 @@ class StandardQuiz extends Quiz {
     if (savedState.containsKey('currentQuestionIndex')) {
       currentQuestionIndexValue = savedState['currentQuestionIndex'];
     }
-    
+
     if (savedState.containsKey('totalPoints')) {
       totalPointsValue = savedState['totalPoints'];
     }
-    
-    if (savedState.containsKey('userAnswers') && savedState['userAnswers'] is List) {
+
+    if (savedState.containsKey('userAnswers') &&
+        savedState['userAnswers'] is List) {
       // Clear and refill user answers
       clearUserAnswers();
       for (dynamic answer in savedState['userAnswers']) {
         addUserAnswer(answer);
       }
     }
-    
-    if (savedState.containsKey('startTime') && savedState['startTime'] != null) {
+
+    if (savedState.containsKey('startTime') &&
+        savedState['startTime'] != null) {
       startTimeValue = DateTime.parse(savedState['startTime']);
     }
-    
+
     if (savedState.containsKey('endTime') && savedState['endTime'] != null) {
       endTimeValue = DateTime.parse(savedState['endTime']);
     }
@@ -89,11 +83,11 @@ class StandardQuiz extends Quiz {
   void submitAnswer(dynamic answer) {
     final currentQuestion = questions[currentQuestionIndex];
     final bool isCorrect = currentQuestion.validateAnswer(answer);
-    
+
     // Track the answer
     // Use the protected method to modify user answers
     setUserAnswer(currentQuestionIndex, answer);
-    
+
     // If answer is correct, update streak and points
     if (isCorrect) {
       currentStreakValue = currentStreak + 1;
@@ -101,7 +95,7 @@ class StandardQuiz extends Quiz {
     } else {
       currentStreakValue = 0;
     }
-    
+
     // Apply gamification strategies
     for (final strategy in gamificationStrategies) {
       if (strategy.isApplicable(currentState)) {
@@ -157,13 +151,13 @@ class StandardQuiz extends Quiz {
     currentQuestionIndexValue = 0;
     totalPointsValue = 0;
     currentStreakValue = 0;
-    
+
     // Clear and reset user answers
     clearUserAnswers();
     for (int i = 0; i < questions.length; i++) {
       addUserAnswer(null);
     }
-    
+
     // Reset question-specific timers
     for (final question in questions) {
       question.resetTimer();
@@ -174,22 +168,23 @@ class StandardQuiz extends Quiz {
   Map<String, dynamic> getResults() {
     int correctAnswers = 0;
     int totalQuestions = questions.length;
-    
+
     for (int i = 0; i < totalQuestions; i++) {
-      if (i < userAnswers.length && 
-          userAnswers[i] != null && 
+      if (i < userAnswers.length &&
+          userAnswers[i] != null &&
           questions[i].validateAnswer(userAnswers[i])) {
         correctAnswers++;
       }
     }
-    
+
     return {
       'quizId': id,
       'quizTitle': title,
       'totalQuestions': totalQuestions,
       'correctAnswers': correctAnswers,
       'totalPoints': totalPoints,
-      'completionRate': totalQuestions > 0 ? correctAnswers / totalQuestions : 0,
+      'completionRate':
+          totalQuestions > 0 ? correctAnswers / totalQuestions : 0,
       'timeSpent': totalTime?.inSeconds ?? 0,
     };
   }
@@ -200,9 +195,10 @@ class StandardQuiz extends Quiz {
     // Add more detailed statistics
     return {
       ...results,
-      'averageTimePerQuestion': questions.isNotEmpty && totalTime != null 
-          ? totalTime!.inSeconds / questions.length 
-          : 0,
+      'averageTimePerQuestion':
+          questions.isNotEmpty && totalTime != null
+              ? totalTime!.inSeconds / questions.length
+              : 0,
     };
   }
 
@@ -210,7 +206,7 @@ class StandardQuiz extends Quiz {
   Future<String> exportResults(String format) async {
     // Export results to the requested format
     final results = getResults();
-    
+
     switch (format.toLowerCase()) {
       case 'json':
         return jsonEncode(results);
@@ -226,7 +222,7 @@ class StandardQuiz extends Quiz {
     if (question == null) {
       return const Center(child: Text('No question available'));
     }
-    
+
     return question.buildQuestionWidget();
   }
 
@@ -241,11 +237,11 @@ class StandardQuiz extends Quiz {
   @override
   Widget buildSummaryWidget() {
     final results = getResults();
-    
+
     return Column(
       children: [
         Text(
-          'Quiz Results: ${title}',
+          'Quiz Results: $title',
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
@@ -277,7 +273,8 @@ class StandardQuiz extends Quiz {
       'title': title,
       'description': description,
       'questions': questions.map((q) => q.toJson()).toList(),
-      'gamificationStrategies': gamificationStrategies.map((s) => s.toJson()).toList(),
+      'gamificationStrategies':
+          gamificationStrategies.map((s) => s.toJson()).toList(),
       'currentQuestionIndex': currentQuestionIndex,
       'totalPoints': totalPoints,
       'currentStreak': currentStreak,
@@ -287,13 +284,16 @@ class StandardQuiz extends Quiz {
       'endTime': endTime?.toIso8601String(),
       'questionTimeTracking': questionTimeTracking,
       'userFeedback': userFeedback,
+      'user': user.toJson(),
     };
   }
-  
+
   /// Create a StandardQuiz from JSON data
-  factory StandardQuiz.fromJson(Map<String, dynamic> json, {
+  factory StandardQuiz.fromJson(
+    Map<String, dynamic> json, {
     required List<Question> parsedQuestions,
     List<GamificationStrategy> parsedStrategies = const [],
+    required user,
   }) {
     return StandardQuiz(
       id: json['id'],
@@ -306,24 +306,28 @@ class StandardQuiz extends Quiz {
       currentStreak: json['currentStreak'] ?? 0,
       metadata: json['metadata'],
       userAnswers: json['userAnswers'],
-      startTime: json['startTime'] != null ? DateTime.parse(json['startTime']) : null,
+      startTime:
+          json['startTime'] != null ? DateTime.parse(json['startTime']) : null,
       endTime: json['endTime'] != null ? DateTime.parse(json['endTime']) : null,
-      questionTimeTracking: (json['questionTimeTracking'] as Map<String, dynamic>?)?.map(
-        (key, value) => MapEntry(
-          key, 
-          (value as List).map((e) => Duration(seconds: e)).toList(),
-        ),
-      ),
+      questionTimeTracking:
+          (json['questionTimeTracking'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(
+              key,
+              (value as List).map((e) => Duration(seconds: e)).toList(),
+            ),
+          ),
       userFeedback: json['userFeedback'],
+      user: user,
     );
   }
-  
+
   // Helper function for export
   String jsonEncode(Map<String, dynamic> data) {
     return json.encode(data);
   }
-  
+
   /// Get total time spent on this quiz
+  @override
   Duration? get totalTime {
     if (startTime == null) return null;
     final end = endTime ?? DateTime.now();

@@ -225,7 +225,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     return NotificationListener<AnswerNotification>(
       onNotification: (notification) {
         _selectedAnswer = notification.answer;
-        
+
         // Process the answer in the controller
         controller.submitAnswer(notification.answer);
         return true;
@@ -249,7 +249,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   // Build completion screen
   Widget _buildCompletionScreen(QuizController controller) {
     final results = controller.getResults();
-    
+
     return Scaffold(
       appBar: AppBar(title: const Text('Quiz Complete')),
       body: Center(
@@ -279,10 +279,16 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(200, 48),
               ),
-              onPressed: () {
+              onPressed: () async {
+                // Submit quiz results to the server
+                await controller.submitQuizResultsToServer();
+
                 // Clean up the quiz safely
                 _disposeQuizController(controller);
-                context.go('/');
+
+                if (mounted) {
+                  context.go('/');
+                }
               },
               child: const Text('Return Home'),
             ),
@@ -291,7 +297,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
       ),
     );
   }
-  
+
   // Safely clean up quiz resources without disposing the container
   void _disposeQuizController(QuizController controller) {
     // Release resources but don't dispose the container
@@ -304,7 +310,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   ) {
     final quiz = controller.quiz;
     if (quiz == null) return [];
-    
+
     // Check if we have a leaderboard strategy
     final hasLeaderboard = quiz.gamificationStrategies.any(
       (s) => s.strategyType == 'leaderboard',
@@ -316,7 +322,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
         Container(
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(16),
               topRight: Radius.circular(16),

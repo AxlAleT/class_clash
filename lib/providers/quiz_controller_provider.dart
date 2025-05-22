@@ -11,7 +11,7 @@ final quizControllerProvider = StateNotifierProvider.autoDispose.family<QuizCont
     ref.onDispose(() {
       // Clean-up logic (if needed)
     });
-    
+
     return QuizController(
       quizId: quizId,
       quizProvider: ref.watch(quizProviderProvider),

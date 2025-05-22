@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 /// Abstract base class for all gamification strategies
@@ -6,12 +5,13 @@ abstract class GamificationStrategy {
   final String id;
   final String name;
   final Map<String, dynamic> configuration;
-  
+
   // Additional properties
-  final int priority; // Higher number = higher priority when multiple strategies apply
+  final int
+  priority; // Higher number = higher priority when multiple strategies apply
   final Map<String, dynamic> conditions; // When this strategy should be applied
   final Map<String, dynamic> analyticsData; // Track effectiveness
-  
+
   GamificationStrategy({
     required this.id,
     required this.name,
@@ -25,19 +25,19 @@ abstract class GamificationStrategy {
   bool isApplicable(Map<String, dynamic> quizState) {
     // Default implementation - can be overridden by subclasses
     if (conditions.isEmpty) return true;
-    
+
     // Check each condition against quiz state
     for (final entry in conditions.entries) {
       final key = entry.key;
       final value = entry.value;
-      
+
       if (!quizState.containsKey(key)) return false;
       if (quizState[key] != value) return false;
     }
-    
+
     return true;
   }
-  
+
   /// Apply the strategy to the current quiz state
   void applyStrategy({
     required dynamic quizState,
@@ -50,13 +50,13 @@ abstract class GamificationStrategy {
     // Record metrics about how this strategy affected user performance/engagement
     // To be implemented by subclasses
   }
-  
+
   /// Build the UI widget for this strategy
   Widget buildStrategyWidget(dynamic quizState);
 
   /// Convert to JSON for persistence
   Map<String, dynamic> toJson();
-  
+
   /// Create GamificationStrategy from JSON (to be implemented by subclasses)
   /// factory GamificationStrategy.fromJson(Map<String, dynamic> json);
 
