@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../utils/quiz_notifications.dart';
 import 'abstract/choice_question.dart';
 
-class MultipleChoiceQuestion extends ChoiceQuestion {
+class SingleChoiceQuestion extends ChoiceQuestion {
   @override
-  String get questionType => 'multiple_choice';
+  String get questionType => 'single_choice';
 
   @override
   Map<String, dynamic> get metadata => {
@@ -14,12 +14,12 @@ class MultipleChoiceQuestion extends ChoiceQuestion {
     'randomizeOptions': randomizeOptions,
   };
 
-  MultipleChoiceQuestion({
+  SingleChoiceQuestion({
     required super.id,
     required super.title,
     super.description,
     required super.options,
-    required super.correctOptionIndices,
+    required int correctOptionIndex,
     super.points,
     super.timeLimit,
     super.imageUrl,
@@ -27,17 +27,19 @@ class MultipleChoiceQuestion extends ChoiceQuestion {
     super.videoUrl,
     super.randomizeOptions,
     super.partialCreditThreshold,
-  });
+  }) : super(
+          correctOptionIndices: [correctOptionIndex],
+        );
 
-  factory MultipleChoiceQuestion.fromJson(Map<String, dynamic> json) {
-    return MultipleChoiceQuestion(
+  factory SingleChoiceQuestion.fromJson(Map<String, dynamic> json) {
+    return SingleChoiceQuestion(
       id: json['id'],
       title: json['title'],
       description: json['description'],
       options: List<String>.from(json['metadata']['options']),
-      correctOptionIndices: List<int>.from(
+      correctOptionIndex: List<int>.from(
         json['metadata']['correctOptionIndices'],
-      ),
+      )[0], // Take first index as the correct one
       points: json['points'] ?? 100,
       timeLimit: json['timeLimit'] ?? 30,
       imageUrl: json['imageUrl'],
@@ -51,46 +53,18 @@ class MultipleChoiceQuestion extends ChoiceQuestion {
 
   @override
   bool validateAnswer(dynamic answer) {
-    if (answer is! List<int>) return false;
-
-    // For multiple selection questions, check if all selected answers are correct
-    // and all correct answers are selected
-    return answer.length == correctOptionIndices.length &&
-        answer.every((index) => correctOptionIndices.contains(index));
+    if (answer is! List<int> || answer.length != 1) return false;
+    return correctOptionIndices.contains(answer[0]);
   }
 
   @override
   double calculatePartialCredit(dynamic answer) {
-    if (answer is! List<int>) return 0.0;
-
-    // For multiple selection questions, calculate partial credit
-    int totalCorrectOptions = correctOptionIndices.length;
-    if (totalCorrectOptions == 0) return 0.0;
-
-    int correctSelections = 0;
-
-    // Count correctly selected options
-    for (int selectedIndex in answer) {
-      if (correctOptionIndices.contains(selectedIndex)) {
-        correctSelections++;
-      } else {
-        // Penalty for incorrect selections
-        correctSelections--;
-      }
-    }
-
-    // Ensure we don't give negative credit
-    correctSelections = correctSelections < 0 ? 0 : correctSelections;
-
-    // Calculate percentage of correct selections
-    double percentage = correctSelections / totalCorrectOptions;
-
-    // If percentage is above threshold, award partial credit
-    return percentage >= partialCreditThreshold ? percentage : 0.0;
+    return validateAnswer(answer) ? 1.0 : 0.0;
   }
 
   @override
   Widget buildQuestionWidget() {
+    // Use a StatefulBuilder to manage local UI state
     return StatefulBuilder(
       builder: (context, setState) {
         return Column(
@@ -116,19 +90,16 @@ class MultipleChoiceQuestion extends ChoiceQuestion {
                     options.length,
                     (index) => Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: CheckboxListTile(
+                      child: RadioListTile<int>(
                         title: Text(options[index]),
-                        value: selectedIndices.contains(index),
+                        value: index,
+                        groupValue: selectedIndices.isNotEmpty ? selectedIndices[0] : null,
                         activeColor: Colors.blue,
-                        checkColor: Colors.white,
-                        onChanged: (checked) {
+                        onChanged: (value) {
                           setState(() {
-                            if (checked == true) {
-                              if (!selectedIndices.contains(index)) {
-                                selectedIndices.add(index);
-                              }
-                            } else {
-                              selectedIndices.remove(index);
+                            selectedIndices.clear();
+                            if (value != null) {
+                              selectedIndices.add(value);
                             }
                           });
                         },
@@ -167,16 +138,6 @@ class MultipleChoiceQuestion extends ChoiceQuestion {
                 child: const Text(
                   'Submit Answer',
                   style: TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Center(
-                child: Text(
-                  'Selected ${selectedIndices.length} of ${options.length} options',
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
                 ),
               ),
             ),

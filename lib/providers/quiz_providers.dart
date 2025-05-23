@@ -3,22 +3,50 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
+import 'package:logging/logging.dart';
 
 import '../features/quiz/factories/quiz_factory.dart';
 import '../features/quiz/factories/user_factory.dart';
 import '../core/models/quiz.dart';
 import '../core/models/user.dart';
+import 'quiz_mocks.dart';
 
 /// Provider class that simulates REST API operations for quizzes
 class QuizProvider {
   // Singleton pattern
   static final QuizProvider _instance = QuizProvider._internal();
   factory QuizProvider() => _instance;
+  
+  // Logger instance
+  final _log = Logger('QuizProvider');
 
   // Private constructor
   QuizProvider._internal() {
+    // Setup logging
+    _setupLogging();
+    
     // Initialize with mock data
     _addMockQuizzes();
+    _log.info('QuizProvider initialized with mock data');
+  }
+  
+  /// Setup logging configuration
+  void _setupLogging() {
+    // Only configure the root logger if it hasn't been configured yet
+    if (Logger.root.level == Level.INFO) {
+      Logger.root.level = Level.ALL;
+      Logger.root.onRecord.listen((record) {
+        if (kDebugMode) {
+          print('${record.level.name}: ${record.time}: ${record.message}');
+          if (record.error != null) {
+            print('Error details: ${record.error}');
+          }
+          if (record.stackTrace != null) {
+            print('Stack trace: ${record.stackTrace}');
+          }
+        }
+      });
+    }
   }
 
   // Dependencies
@@ -34,121 +62,30 @@ class QuizProvider {
 
   // Generate mock quiz data
   void _addMockQuizzes() {
-    // Multiple choice question for a quiz
-    final multipleChoiceQuestion1 = {
-      'id': 'q1',
-      'title': 'What is the capital of France?',
-      'description': 'Choose the correct answer.',
-      'points': 100,
-      'timeLimit': 30,
-      'questionType': 'multiple_choice',
-      'metadata': {
-        'options': ['London', 'Paris', 'Berlin', 'Rome'],
-        'correctOptionIndices': [1], // Paris
-        'allowMultipleSelections': false,
-        'randomizeOptions': true,
-      },
-    };
-
-    // Another multiple choice question
-    final multipleChoiceQuestion2 = {
-      'id': 'q2',
-      'title': 'Which programming languages are statically typed?',
-      'description': 'Select all that apply.',
-      'points': 200,
-      'timeLimit': 45,
-      'questionType': 'multiple_choice',
-      'metadata': {
-        'options': ['JavaScript', 'TypeScript', 'Python', 'Java', 'C++'],
-        'correctOptionIndices': [1, 3, 4], // TypeScript, Java, C++
-        'allowMultipleSelections': true,
-        'randomizeOptions': true,
-      },
-    };
-
-    // A points-based gamification strategy
-    final pointsStrategy = {
-      'id': 'gs1',
-      'name': 'Basic Points',
-      'basePoints': 10,
-      'speedBonusThreshold': 5,
-      'speedBonusPoints': 5,
-      'strategyType': 'PointsStrategy',
-    };
-
-    // Create a complete quiz
-    final quiz1 = {
-      'id': 'quiz_001',
-      'title': 'General Knowledge Quiz',
-      'description': 'Test your knowledge on various topics.',
-      'questions': [multipleChoiceQuestion1, multipleChoiceQuestion2],
-      'gamificationStrategies': [pointsStrategy],
-      'currentQuestionIndex': 0,
-      'totalPoints': 0,
-      'currentStreak': 0,
-      'type': 'standard', // Important to match with registered quiz types
-    };
-
-    // Programming quiz example
-    final quiz2 = {
-      'id': 'quiz_002',
-      'title': 'Dart Programming Basics',
-      'description': 'Test your knowledge of Dart programming fundamentals.',
-      'questions': [
-        {
-          'id': 'q3',
-          'title': 'What keyword is used to declare a variable that can be assigned only once?',
-          'description': 'Choose the correct Dart keyword.',
-          'points': 100,
-          'timeLimit': 30,
-          'questionType': 'multiple_choice',
-          'metadata': {
-            'options': ['var', 'const', 'final', 'static'],
-            'correctOptionIndices': [2], // final
-            'allowMultipleSelections': false,
-            'randomizeOptions': true,
-          },
-        }
-      ],
-      'gamificationStrategies': [pointsStrategy],
-      'type': 'standard',
-    };
-
+    _log.fine('Adding mock quiz data');
+    
     // Add the quizzes to our mock data store
     _quizData['quiz_001'] = quiz1;
     _quizData['quiz_002'] = quiz2;
 
     // Add some mock users for this quiz
-    final user1 = {
-      'id': 'user_001',
-      'displayName': 'John Doe',
-      'joinedAt': DateTime.now().subtract(const Duration(days: 10)).toIso8601String(),
-      'userType': 'StandardUser',
-      'quizScores': {'quiz_001': 300},
-      'quizCompletion': {'quiz_001': true},
-    };
-
-    final user2 = {
-      'id': 'user_002',
-      'displayName': 'Jane Smith',
-      'joinedAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
-      'userType': 'StandardUser',
-      'quizScores': {'quiz_001': 250},
-      'quizCompletion': {'quiz_001': true},
-    };
-
     _quizUsers['quiz_001'] = [
       _userFactory.createFromJson(user1),
       _userFactory.createFromJson(user2)
     ];
+    
+    _log.fine('Added ${_quizData.length} mock quizzes and users for ${_quizUsers.length} quizzes');
   }
 
   /// Load a quiz by its ID
   Future<Quiz?> loadQuiz(String quizId, {String? userId}) async {
+    _log.info('Loading quiz: $quizId (userId: $userId)');
+    
     // Simulate network delay
     await Future.delayed(_mockDelay);
 
     if (!_quizData.containsKey(quizId)) {
+      _log.warning('Quiz not found: $quizId');
       return null;
     }
 
@@ -180,23 +117,32 @@ class QuizProvider {
     }
 
     // Create and return the quiz with user data
-    return _quizFactory.createFromJson(quizData);
+    final quiz = _quizFactory.createFromJson(quizData);
+    _log.fine('Quiz loaded successfully: $quizId (title: ${quiz.title})');
+    
+    return quiz;
   }
 
   /// Get quiz data without creating a Quiz instance
   Future<Map<String, dynamic>?> getQuizData(String quizId) async {
+    _log.info('Getting raw quiz data: $quizId');
+    
     // Simulate network delay
     await Future.delayed(_mockDelay);
 
     if (!_quizData.containsKey(quizId)) {
+      _log.warning('Quiz data not found: $quizId');
       return null;
     }
 
+    _log.fine('Quiz data retrieved successfully: $quizId');
     return Map<String, dynamic>.from(_quizData[quizId]!);
   }
 
   /// Create a new quiz
   Future<String> createQuiz(Map<String, dynamic> quizData) async {
+    _log.info('Creating new quiz');
+    
     // Simulate network delay
     await Future.delayed(_mockDelay);
 
@@ -204,42 +150,60 @@ class QuizProvider {
     quizData['id'] = quizId;
 
     _quizData[quizId] = quizData;
+    
+    _log.info('Quiz created with ID: $quizId');
+    _log.fine('Quiz details: ${jsonEncode({
+      'title': quizData['title'],
+      'questions': (quizData['questions'] as List?)?.length ?? 0,
+    })}');
 
     return quizId;
   }
 
   /// Update an existing quiz
   Future<bool> updateQuiz(String quizId, Map<String, dynamic> quizData) async {
+    _log.info('Updating quiz: $quizId');
+    
     // Simulate network delay
     await Future.delayed(_mockDelay);
 
     if (!_quizData.containsKey(quizId)) {
+      _log.warning('Cannot update quiz - quiz not found: $quizId');
       return false;
     }
 
     quizData['id'] = quizId; // Ensure ID is preserved
     _quizData[quizId] = quizData;
+    
+    _log.fine('Quiz updated successfully: $quizId');
 
     return true;
   }
 
   /// Delete a quiz
   Future<bool> deleteQuiz(String quizId) async {
+    _log.info('Deleting quiz: $quizId');
+    
     // Simulate network delay
     await Future.delayed(_mockDelay);
 
     if (!_quizData.containsKey(quizId)) {
+      _log.warning('Cannot delete quiz - quiz not found: $quizId');
       return false;
     }
 
     _quizData.remove(quizId);
     _quizUsers.remove(quizId);
+    
+    _log.info('Quiz deleted: $quizId');
 
     return true;
   }
 
   /// List all quizzes
   Future<List<Quiz>> listQuizzes({String? userId}) async {
+    _log.info('Listing all quizzes' + (userId != null ? ' for user: $userId' : ''));
+    
     // Simulate network delay
     await Future.delayed(_mockDelay);
 
@@ -272,28 +236,37 @@ class QuizProvider {
 
       quizzes.add(_quizFactory.createFromJson(quizData));
     }
+    
+    _log.fine('Retrieved ${quizzes.length} quizzes');
 
     return quizzes;
   }
 
   /// Get quiz participants
   Future<List<User>> getQuizParticipants(String quizId) async {
+    _log.info('Getting participants for quiz: $quizId');
+    
     // Simulate network delay
     await Future.delayed(_mockDelay);
 
     if (!_quizUsers.containsKey(quizId)) {
+      _log.fine('No participants found for quiz: $quizId');
       return [];
     }
-
+    
+    _log.fine('Retrieved ${_quizUsers[quizId]!.length} participants for quiz: $quizId');
     return List<User>.from(_quizUsers[quizId]!);
   }
 
   /// Add participant to a quiz
   Future<bool> addParticipant(String quizId, User user) async {
+    _log.info('Adding participant ${user.id} to quiz: $quizId');
+    
     // Simulate network delay
     await Future.delayed(_mockDelay);
 
     if (!_quizData.containsKey(quizId)) {
+      _log.warning('Cannot add participant - quiz not found: $quizId');
       return false;
     }
 
@@ -302,18 +275,23 @@ class QuizProvider {
     }
 
     _quizUsers[quizId]!.add(user);
+    
+    _log.fine('Participant ${user.id} (${user.displayName}) added to quiz: $quizId');
+    _log.fine('Total participants for quiz $quizId: ${_quizUsers[quizId]!.length}');
 
     return true;
   }
 
   /// Simulate submitting quiz results to a server endpoint
   Future<bool> submitQuizResults(String quizId, Map<String, dynamic> results) async {
+    _log.info('Submitting quiz results for quiz: $quizId');
+    
     // Simulate network delay
     await Future.delayed(_mockDelay);
 
     // Check if quiz exists
     if (!_quizData.containsKey(quizId)) {
-      _logError('Quiz not found: $quizId');
+      _log.severe('Cannot submit results - quiz not found: $quizId', 'QuizNotFoundError');
       return false;
     }
 
@@ -334,50 +312,17 @@ class QuizProvider {
     // Add the submission to our mock database
     (_quizData[quizId]!['submissions'] as List).add(submissionData);
 
-    // Log the submission data in a more visible way
-    _logInfo('Quiz results submitted', {
+    // Log the submission data
+    final logData = {
       'quizId': quizId,
       'userId': results['userId'] ?? 'unknown',
       'totalPoints': results['totalPoints'] ?? 0,
-      'submissionData': submissionData,
-    });
+    };
+    
+    _log.info('Quiz results submitted successfully: ${jsonEncode(logData)}');
+    _log.fine('Full submission data: ${jsonEncode(submissionData)}');
 
     return true;
-  }
-
-  /// Log information with detailed data
-  void _logInfo(String message, [Map<String, dynamic>? data]) {
-    // Use developer.log for better logging in debug console
-    developer.log(
-      message,
-      name: 'QuizProvider',
-      time: DateTime.now(),
-    );
-
-    // Also print a formatted version for console visibility
-    if (kDebugMode) {
-      print('ℹ️ QuizProvider: $message');
-      if (data != null) {
-        final prettyJson = const JsonEncoder.withIndent('  ').convert(data);
-        print('📊 Data: $prettyJson');
-      }
-    }
-  }
-
-  /// Log errors
-  void _logError(String message, [dynamic error]) {
-    developer.log(
-      message,
-      name: 'QuizProvider',
-      error: error,
-    );
-
-    if (kDebugMode) {
-      print('❌ QuizProvider ERROR: $message');
-      if (error != null) {
-        print('🔍 Error details: $error');
-      }
-    }
   }
 }
 

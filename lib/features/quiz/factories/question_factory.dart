@@ -1,5 +1,6 @@
 import '../../../core/models/question.dart';
 import '../models/questions/multiple_choice_question.dart';
+import '../models/questions/single_choice_question.dart';
 
 /// Factory class responsible for creating Question objects
 class QuestionFactory {
@@ -12,6 +13,7 @@ class QuestionFactory {
   QuestionFactory._internal() {
     // Register built-in question types
     registerQuestionType('multiple_choice', MultipleChoiceQuestion.fromJson);
+    registerQuestionType('single_choice', SingleChoiceQuestion.fromJson);
   }
 
   // Singleton instance
