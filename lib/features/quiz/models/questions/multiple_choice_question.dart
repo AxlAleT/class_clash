@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../widgets/question_types/multiple_choice_question_widget.dart';
+
 import '../../utils/quiz_notifications.dart';
 import 'abstract/choice_question.dart';
 
 class MultipleChoiceQuestion extends ChoiceQuestion {
-  List<int> selectedIndices = [];
-  
   @override
   String get questionType => 'multiple_choice';
 
@@ -29,10 +27,7 @@ class MultipleChoiceQuestion extends ChoiceQuestion {
     super.videoUrl,
     super.randomizeOptions,
     super.partialCreditThreshold,
-    List<int>? selectedIndices,
-  }) {
-    this.selectedIndices = selectedIndices ?? [];
-  }
+  });
 
   factory MultipleChoiceQuestion.fromJson(Map<String, dynamic> json) {
     return MultipleChoiceQuestion(
@@ -96,6 +91,98 @@ class MultipleChoiceQuestion extends ChoiceQuestion {
 
   @override
   Widget buildQuestionWidget() {
-    return MultipleChoiceQuestionWidget(question: this);
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            if (description != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(description!, style: const TextStyle(fontSize: 16)),
+              ),
+            const SizedBox(height: 16),
+
+            // Scrollable container for options
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 300),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: List.generate(
+                    options.length,
+                    (index) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: CheckboxListTile(
+                        title: Text(options[index]),
+                        value: selectedIndices.contains(index),
+                        activeColor: Colors.blue,
+                        checkColor: Colors.white,
+                        onChanged: (checked) {
+                          setState(() {
+                            if (checked == true) {
+                              if (!selectedIndices.contains(index)) {
+                                selectedIndices.add(index);
+                              }
+                            } else {
+                              selectedIndices.remove(index);
+                            }
+                          });
+                        },
+                        secondary: CircleAvatar(
+                          backgroundColor: selectedIndices.contains(index) 
+                              ? Colors.blue 
+                              : Colors.grey.shade200,
+                          child: selectedIndices.contains(index)
+                              ? const Icon(Icons.check, color: Colors.white)
+                              : Text(String.fromCharCode(65 + index)), // A, B, C, etc.
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Confirmation button
+            Center(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(200, 48),
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed:
+                    selectedIndices.isEmpty
+                        ? null // Disable if nothing selected
+                        : () {
+                          // Only dispatch notification when user confirms
+                          AnswerNotification(selectedIndices).dispatch(context);
+                        },
+                child: const Text(
+                  'Submit Answer',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Center(
+                child: Text(
+                  'Selected ${selectedIndices.length} of ${options.length} options',
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
