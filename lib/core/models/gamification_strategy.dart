@@ -53,11 +53,8 @@ abstract class GamificationStrategy {
   }
 
   /// Build the UI widget for this strategy
-  Widget buildStrategyWidget(dynamic quizState);
-
-  /// Builds the widget for this strategy
-  Widget buildWidget(BuildContext context);
-
+  /// Combines the functionality of `buildStrategyWidget` and `buildWidget`.
+  Widget buildUI(BuildContext context, dynamic quizState);
   /// Convert to JSON for persistence
   Map<String, dynamic> toJson();
 
