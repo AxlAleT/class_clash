@@ -1,5 +1,6 @@
 import '../../../core/models/gamification_strategy.dart';
 import '../models/gamification/points_strategy.dart';
+import '../models/gamification/leaderboard_strategy.dart'; // Import LeaderboardStrategy
 
 /// Factory class responsible for creating GamificationStrategy objects
 class GamificationFactory {
@@ -12,6 +13,7 @@ class GamificationFactory {
   GamificationFactory._internal() {
     // Register built-in strategy types
     registerStrategyType('PointsStrategy', _createPointsStrategy);
+    registerStrategyType('leaderboard', _createLeaderboardStrategy); // Register LeaderboardStrategy
   }
 
   // Singleton instance
@@ -51,16 +53,11 @@ class GamificationFactory {
 
   // Factory method for creating PointsStrategy
   GamificationStrategy _createPointsStrategy(Map<String, dynamic> json) {
-    return PointsStrategy(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      basePoints: json['basePoints'] as int? ?? 10,
-      speedBonusThreshold: json['speedBonusThreshold'] as int? ?? 5,
-      speedBonusPoints: json['speedBonusPoints'] as int? ?? 5,
-      configuration: json['configuration'] as Map<String, dynamic>? ?? <String, dynamic>{},
-      priority: json['priority'] as int? ?? 1,
-      conditions: json['conditions'] as Map<String, dynamic>? ?? <String, dynamic>{},
-      analyticsData: json['analyticsData'] as Map<String, dynamic>?,
-    );
+    return PointsStrategy.fromJson(json); // Use existing fromJson
+  }
+
+  // Factory method for creating LeaderboardStrategy
+  GamificationStrategy _createLeaderboardStrategy(Map<String, dynamic> json) {
+    return LeaderboardStrategy.fromJson(json); // Use fromJson from LeaderboardStrategy
   }
 }

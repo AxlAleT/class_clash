@@ -35,13 +35,13 @@ abstract class Question {
     startTime = DateTime.now();
   }
 
-  Widget buildQuestionWidget();
-
   Widget buildMediaWidget();
 
   Widget buildFeedbackWidget(dynamic userAnswer, bool isCorrect);
 
   Map<String, dynamic> toJson();
+
+  Widget buildQuestionWidget();
 
   String get questionType;
 }

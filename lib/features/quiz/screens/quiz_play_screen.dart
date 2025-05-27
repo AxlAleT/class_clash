@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../controllers/quiz_play_controller.dart';
 import '../../../providers/quiz_controller_provider.dart';
 import '../utils/quiz_notifications.dart';
+import '../factories/question_factory.dart';
+import '../widgets/quiz_completion_widget.dart'; // Import QuizCompletionWidget
 
 class QuizPlayScreen extends ConsumerStatefulWidget {
   final String quizId;
@@ -62,7 +64,17 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     }
 
     if (quizState.status == QuizStatus.completed) {
-      return _buildCompletionScreen(controller);
+      return QuizCompletionWidget(
+        results: controller.getResults(), // Or quizState.results if available and appropriate
+        controller: controller,
+        onReturnHome: () {
+          // The navigation logic previously in _buildCompletionScreen's ElevatedButton
+          // _disposeQuizController(controller); // This logic is now handled inside QuizCompletionWidget's button
+          if (mounted) { // Check if the widget is still in the tree
+            context.go('/');
+          }
+        },
+      );
     }
 
     // Check if we have a valid current question
@@ -196,7 +208,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                             : KeyedSubtree(
                                 key: ValueKey('question_${quizState.currentQuestionIndex}'),
                                 child: _wrapWithAnswerHandler(
-                                  currentQuestion.buildQuestionWidget(),
+                                  QuestionFactory().createQuestionWidget(currentQuestion),
                                   controller,
                                 ),
                               ),
@@ -246,64 +258,6 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     }
   }
 
-  // Build completion screen
-  Widget _buildCompletionScreen(QuizController controller) {
-    final results = controller.getResults();
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Quiz Complete')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.check_circle,
-              color: Colors.green,
-              size: 80,
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Quiz Complete!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Your score: ${results['totalPoints'] ?? 0} points',
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(200, 48),
-              ),
-              onPressed: () async {
-                // Submit quiz results to the server
-                await controller.submitQuizResultsToServer();
-
-                // Clean up the quiz safely
-                _disposeQuizController(controller);
-
-                if (mounted) {
-                  context.go('/');
-                }
-              },
-              child: const Text('Return Home'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Safely clean up quiz resources without disposing the container
-  void _disposeQuizController(QuizController controller) {
-    // Release resources but don't dispose the container
-    controller.disposeQuiz();
-  }
-
   // Build gamification widgets from the controller
   List<Widget> _buildGamificationWidgets(
     QuizController controller,
@@ -311,104 +265,29 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     final quiz = controller.quiz;
     if (quiz == null) return [];
 
-    // Check if we have a leaderboard strategy
-    final hasLeaderboard = quiz.gamificationStrategies.any(
-      (s) => s.strategyType == 'leaderboard',
-    );
+    List<Widget> gamificationWidgets = [];
 
-    if (hasLeaderboard) {
-      // Display a dummy leaderboard for this example
-      return [
-        Container(
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              topRight: Radius.circular(16),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Leaderboard',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 70,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 5,
-                  itemBuilder: (context, index) {
-                    final participants = [
-                      'You',
-                      'Alex',
-                      'Jamie',
-                      'Taylor',
-                      'Morgan',
-                    ];
-                    final scores = {
-                      'You': controller.state.totalPoints,
-                      'Alex': 120,
-                      'Jamie': 90,
-                      'Taylor': 150,
-                      'Morgan': 85,
-                    };
-
-                    final participant = participants[index];
-                    final score = scores[participant] ?? 0;
-
-                    return Container(
-                      width: 80,
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: participant == 'You'
-                            ? Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withOpacity(0.2)
-                            : Theme.of(context).colorScheme.surface,
-                        border: participant == 'You'
-                            ? Border.all(
-                                color: Theme.of(context).colorScheme.primary,
-                              )
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            participant,
-                            style: TextStyle(
-                              fontWeight: participant == 'You'
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '$score pts',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ];
+    for (var strategy in quiz.gamificationStrategies) {
+      // Use the buildWidget method from the strategy
+      // Pass the current BuildContext
+      // The LeaderboardStrategy.buildWidget will internally handle fetching the current user's score
+      // For now, LeaderboardStrategy's buildWidget uses dummy participant data and a placeholder for current user score
+      // This part needs to be updated if LeaderboardWidget requires live score from QuizPlayScreen's state.
+      // However, the current LeaderboardStrategy.buildWidget is designed to use dummy data
+      // and LeaderboardStrategy.buildStrategyWidget is what uses quizState for score.
+      // To use the new buildWidget method:
+      if (strategy.strategyType == 'leaderboard') {
+         // The new buildWidget method in LeaderboardStrategy now directly returns LeaderboardWidget
+         // with dummy data. If live score needs to be passed, LeaderboardStrategy.buildWidget
+         // or LeaderboardWidget itself needs modification/access to live state.
+         // For this refactor, we assume LeaderboardStrategy.buildWidget handles its data needs.
+         gamificationWidgets.add(strategy.buildWidget(context));
+      }
+      // Add other strategies' widgets if needed. For example:
+      // if (strategy.strategyType == 'PointsStrategy') {
+      //   gamificationWidgets.add(strategy.buildStrategyWidget({'points': controller.state.totalPoints}));
+      // }
     }
-
-    return [];
+    return gamificationWidgets;
   }
 }

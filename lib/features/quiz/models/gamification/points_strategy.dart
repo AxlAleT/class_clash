@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../../core/models/gamification_strategy.dart';
 
@@ -83,4 +84,11 @@ class PointsStrategy extends GamificationStrategy {
 
   @override
   String get strategyType => 'PointsStrategy';
+
+  @override
+  Widget buildWidget(BuildContext context) {
+    // This strategy is not primarily UI-focused, so return an empty widget.
+    // Its UI representation is typically handled by `buildStrategyWidget` if needed directly.
+    return const SizedBox.shrink();
+  }
 }
