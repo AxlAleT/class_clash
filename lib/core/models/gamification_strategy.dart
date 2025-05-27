@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// Abstract base class for all gamification strategies
 abstract class GamificationStrategy {
@@ -53,6 +54,9 @@ abstract class GamificationStrategy {
 
   /// Build the UI widget for this strategy
   Widget buildStrategyWidget(dynamic quizState);
+
+  /// Builds the widget for this strategy
+  Widget buildWidget(BuildContext context);
 
   /// Convert to JSON for persistence
   Map<String, dynamic> toJson();

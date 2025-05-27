@@ -35,8 +35,6 @@ abstract class Question {
     startTime = DateTime.now();
   }
 
-  Widget buildQuestionWidget();
-
   Widget buildMediaWidget();
 
   Widget buildFeedbackWidget(dynamic userAnswer, bool isCorrect);

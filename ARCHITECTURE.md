@@ -56,14 +56,14 @@ lib/
 │ │ │ ├── quiz_creation_screen.dart
 │ │ │ └── quiz_play_screen.dart
 │ │ └── widgets/
+│ │ ├── quiz_completion_widget.dart
 │ │ ├── question_types/
-│ │ │ ├── multiple_choice_widget.dart
-│ │ │ ├── true_false_widget.dart
+│ │ │ ├── multiple_choice_question_widget.dart
+│ │ │ ├── single_choice_question_widget.dart
 │ │ │ └── ...
 │ │ └── gamification/
-│ │ ├── leaderboard_widget.dart
-│ │ ├── points_display_widget.dart
-│ │ └── ...
+│ │ │ ├── leaderboard_widget.dart
+│ │ │ └── ...
 │ └── profile/
 │ ├── controllers/
 │ ├── repositories/
@@ -76,29 +76,62 @@ lib/
 
 ## Architecture Diagram
 
+**Overview:** The diagram illustrates how questions and gamification strategies are created and utilized.
+The `QuizPlayScreen` (not explicitly shown in this part of the diagram but is the consumer)
+orchestrates the display of questions and gamification elements.
+
+**Question Handling:**
+`QuestionFactory` is responsible for two main tasks:
+1. Creating `AbstractQuestion` instances (data models like `MCQ`, `SingleChoiceQuestion`).
+2. Creating specific `QuestionWidget` instances (like `MultipleChoiceQuestionWidget`) based on the question type.
+The `QuizPlayScreen` uses the factory to get the appropriate widget for the current question model.
+
+**Gamification Handling:**
+`GamificationFactory` creates `AbstractGamification` strategy instances (like `PointsStrategy`, `LeaderboardStrategy`).
+Each strategy, via its `buildWidget(context)` method, can provide a UI component (e.g., `LeaderboardWidget`).
+The `QuizPlayScreen` calls this method on active strategies to render their UI.
+
+**Diagram:**
+
 ┌─────────────────────────────┐ ┌─────────────────────────────┐
-│ QuestionFactory │ │ GamificationFactory │
+│       QuestionFactory       │ │    GamificationFactory      │
 ├─────────────────────────────┤ ├─────────────────────────────┤
-│ + createQuestion(type, data)│ │ + createStrategy(type, data)│
-└───────────┬─────────────────┘ └───────────┬─────────────────┘
-│ │
-▼ ▼
-┌─────────────────────────────┐ ┌─────────────────────────────┐
-│ AbstractQuestion │ │ AbstractGamification │
-├─────────────────────────────┤ ├─────────────────────────────┤
-│ + render() │ │ + apply(quizState) │
-│ + validate(answer) │ │ + getUI() │
-└───────────┬─────────────────┘ └───────────┬─────────────────┘
-│ │
-┌───────┴───────┬───────┐ ┌───────┴───────┬───────┐
-▼ ▼ ▼ ▼ ▼ ▼
-┌─────────┐ ┌─────────┐ ┌─────┐ ┌─────────┐ ┌─────────┐ ┌─────┐
-│ MCQ │ │ TrueFalse│ │ ... │ │ Points │ │Leaderboard│ │... │
-└─────────┘ └─────────┘ └─────┘ └─────────┘ └─────────┘ └─────┘
+│+ createQuestion(type, data) │ │+ createStrategy(type, data) │
+│+ createQuestionWidget(q)    │ │                             │
+└───────────┬────┬────────────┘ └───────────┬─────────────────┘
+            │    │ creates                  │
+creates     │    │                          │ creates
+▼           │    └─────► ┌────────────────┐ ▼
+┌───────────┴───┐        │ QuestionWidget │ ┌───────────────────────────┐
+│AbstractQuestion │◄──data─┤ (e.g., MCQW) │ │ AbstractGamification    │
+├─────────────────┤        └────────────────┘ ├───────────────────────────┤
+│+ validate(answer)│                         │+ applyStrategy(...)     │
+│+ questionType   │                         │+ buildWidget(context)   │
+└──────┬──────────┘                         └───────────┬───────────────┘
+       │ implements                                     │ implements
+┌──────┴───────┬───────┐                         ┌──────┴───────┬──────────┐
+▼              ▼       ▼                         ▼              ▼          ▼
+┌─────┐   ┌──────────┐┌─────┐             ┌───────────┐ ┌───────────────────┐┌─────┐
+│ MCQ │   │SingleChoice││ ... │             │ PointsStrat││LeaderboardStrategy││ ... │
+└─────┘   └──────────┘└─────┘             └───────────┘└───────────────────┘└─────┘
+                                                                 │ builds
+                                                                 ▼
+                                                      ┌───────────────────┐
+                                                      │LeaderboardWidget  │
+                                                      └───────────────────┘
+
+**Note:** `MCQW` is `MultipleChoiceQuestionWidget`. `AbstractQuestion` models (like `MCQ`) are primarily data containers with validation logic. Their UI is handled by separate `QuestionWidget`s. `QuizPlayScreen` uses `QuestionFactory` to get the `QuestionWidget` for a given `AbstractQuestion` and uses `AbstractGamification.buildWidget()` to get gamification UI.
 
 ## Design Patterns Used
 
-1. **Factory Method**: For creating different question types and gamification strategies
-2. **Repository Pattern**: For data access independent of the data source
-3. **Provider Pattern**: Using Riverpod for state management
-4. **Strategy Pattern**: For implementing different gamification mechanics
+1.  **Factory Method**:
+    *   Used by `QuestionFactory` to create different types of `AbstractQuestion` data models.
+    *   Extended in `QuestionFactory` to also create corresponding `QuestionWidget` UI components.
+    *   Used by `GamificationFactory` to create different `AbstractGamification` strategies.
+2.  **Repository Pattern**: For data access independent of the data source (e.g., `QuizRepository`).
+3.  **Provider Pattern**: Using Riverpod for state management throughout the application.
+4.  **Strategy Pattern**: For implementing different gamification mechanics (`AbstractGamification` and its concrete implementations like `PointsStrategy`, `LeaderboardStrategy`).
+5.  **Single Responsibility Principle (SRP)**:
+    *   More strongly enforced by separating data models and core logic (e.g., `AbstractQuestion`, `MultipleChoiceQuestion`) from their UI representations (e.g., `MultipleChoiceQuestionWidget`).
+    *   The `QuizCompletionWidget` also encapsulates the UI and logic for the quiz completion screen, separating it from the `QuizPlayScreen`.
+    *   Gamification strategies (`AbstractGamification`) are responsible for their logic, and now also for providing their specific UI components via `buildWidget(context)`.
