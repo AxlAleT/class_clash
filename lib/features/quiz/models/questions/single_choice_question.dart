@@ -62,4 +62,9 @@ class SingleChoiceQuestion extends ChoiceQuestion {
     return validateAnswer(answer) ? 1.0 : 0.0;
   }
 
+  @override
+  Widget buildQuestionWidget() {
+    return SingleChoiceQuestionWidget(question: this);
+  }
+
 }

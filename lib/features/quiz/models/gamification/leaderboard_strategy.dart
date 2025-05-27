@@ -77,7 +77,7 @@ class LeaderboardStrategy extends GamificationStrategy {
     // final currentUserScore = quizState.currentUserScore; 
     const int currentUserScore = 0; // Placeholder for current user's score
 
-    return const LeaderboardWidget(
+    return LeaderboardWidget(
       currentUserScore: currentUserScore, // This should be dynamic
       participantsData: _dummyParticipants, // Using dummy data
     );

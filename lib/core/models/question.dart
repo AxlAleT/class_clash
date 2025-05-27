@@ -41,5 +41,7 @@ abstract class Question {
 
   Map<String, dynamic> toJson();
 
+  Widget buildQuestionWidget();
+
   String get questionType;
 }

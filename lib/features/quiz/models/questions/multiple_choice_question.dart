@@ -4,6 +4,8 @@ import '../../utils/quiz_notifications.dart';
 import 'abstract/choice_question.dart';
 
 class MultipleChoiceQuestion extends ChoiceQuestion {
+  List<int> selectedIndices = [];
+  
   @override
   String get questionType => 'multiple_choice';
 
@@ -27,7 +29,10 @@ class MultipleChoiceQuestion extends ChoiceQuestion {
     super.videoUrl,
     super.randomizeOptions,
     super.partialCreditThreshold,
-  });
+    List<int>? selectedIndices,
+  }) {
+    this.selectedIndices = selectedIndices ?? [];
+  }
 
   factory MultipleChoiceQuestion.fromJson(Map<String, dynamic> json) {
     return MultipleChoiceQuestion(
@@ -89,4 +94,8 @@ class MultipleChoiceQuestion extends ChoiceQuestion {
     return percentage >= partialCreditThreshold ? percentage : 0.0;
   }
 
+  @override
+  Widget buildQuestionWidget() {
+    return MultipleChoiceQuestionWidget(question: this);
+  }
 }

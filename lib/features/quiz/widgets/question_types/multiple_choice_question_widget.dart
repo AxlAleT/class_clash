@@ -14,7 +14,7 @@ class MultipleChoiceQuestionWidget extends StatefulWidget {
 
 class _MultipleChoiceQuestionWidgetState
     extends State<MultipleChoiceQuestionWidget> {
-  List<int> selectedIndices = [];
+  late List<int> selectedIndices;
 
   @override
   void initState() {
