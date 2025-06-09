@@ -67,6 +67,7 @@ class QuizProvider {
     // Add the quizzes to our mock data store
     _quizData['quiz_001'] = quiz1;
     _quizData['quiz_002'] = quiz2;
+    _quizData['quiz_003'] = trueFalseQuizSample; // Added the new true/false quiz
 
     // Add some mock users for this quiz
     _quizUsers['quiz_001'] = [

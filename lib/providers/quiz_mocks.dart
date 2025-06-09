@@ -84,6 +84,43 @@ final user1 = {
   'quizCompletion': {'quiz_001': true},
 };
 
+final trueFalseQuestion1 = {
+  "id": "tf001",
+  "type": "true_false", // Corrected: "type" instead of "questionType" to match factory registration
+  "title": "The sky is blue.",
+  "description": "Is this statement true or false?",
+  "points": 50,
+  "timeLimit": 15,
+  "metadata": {
+    "correctOptionIndices": [0] // 0 for True, 1 for False
+  }
+};
+
+final trueFalseQuestion2 = {
+  "id": "tf002",
+  "type": "true_false", // Corrected: "type" instead of "questionType"
+  "title": "Flutter is a programming language.",
+  "description": "Is this statement true or false?",
+  "points": 50,
+  "timeLimit": 15,
+  "metadata": {
+    "correctOptionIndices": [1] // 0 for True, 1 for False (Flutter is a UI toolkit)
+  }
+};
+
+final trueFalseQuizSample = {
+  'id': 'quiz_003',
+  'title': 'True/False Challenge',
+  'description': 'Test your knowledge with these true or false questions.',
+  'questions': [trueFalseQuestion1, trueFalseQuestion2],
+  // Assuming the same pointsStrategy can be reused or is optional
+  // 'gamificationStrategies': [pointsStrategy],
+  'currentQuestionIndex': 0,
+  'totalPoints': 0,
+  'currentStreak': 0,
+  'type': 'standard',
+};
+
 final user2 = {
   'id': 'user_002',
   'displayName': 'Jane Smith',
