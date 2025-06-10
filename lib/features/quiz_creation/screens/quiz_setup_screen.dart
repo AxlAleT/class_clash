@@ -8,7 +8,6 @@ class QuizSetupScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Example UI, replace with your actual UI
     return Scaffold(
       appBar: AppBar(title: const Text('Quiz Setup')),
       body: Center(
