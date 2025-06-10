@@ -79,13 +79,23 @@ class AddQuestionScreen {
 
     // Conceptually, a button here would call: previewQuiz(context);
     // For simulation:
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Assuming after adding some questions, user wants to preview.
-      // In a real app, this would be a distinct button press.
-      if (controller.quizState.questions.isNotEmpty) { // Only navigate if questions exist
-          previewQuiz(context);
-      }
-    });
+    // Check if WidgetsBinding.instance is available (for non-Flutter conceptual execution)
+    if (WidgetsBinding.instance != null) {
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
+        // Assuming after adding some questions, user wants to preview.
+        // In a real app, this would be a distinct button press.
+        if (controller.quizState.questions.isNotEmpty) { // Only navigate if questions exist
+            previewQuiz(context);
+        }
+      });
+    } else {
+      print("AddQuestionScreen: WidgetsBinding.instance is null, skipping addPostFrameCallback for conceptual execution.");
+      // Optionally, directly call previewQuiz if it makes sense for the simulation's logic
+      // when not in a Flutter environment. For now, just print.
+      // if (controller.quizState.questions.isNotEmpty) {
+      //     previewQuiz(context);
+      // }
+    }
   }
 
   void previewQuiz(dynamic context) {
@@ -178,5 +188,10 @@ void main() {
         controller.quizState.questions[q_idx].display();
     }
   }
-  // The build method's post-frame callback would navigate to preview at this point if questions exist.
+}
+
+// After adding questions, explicitly simulate navigating to preview
+if (controller.quizState.questions.isNotEmpty) {
+  print("\n--- Main: Simulating navigation to preview screen ---");
+  addQuestionScreen.previewQuiz(null);
 }

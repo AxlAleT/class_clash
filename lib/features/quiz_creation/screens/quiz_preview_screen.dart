@@ -87,18 +87,15 @@ void main() {
   controller.updateQuizTitle("Sample Preview Quiz");
   controller.updateQuizDescription("This is a quiz to demonstrate the preview screen.");
 
-  // Add questions using AddQuestionScreen's logic (which adds to controller)
+  // Conceptually render AddQuestionScreen (though no questions are added by this call alone in this main function's flow)
   final addQuestionScreen = AddQuestionScreen(controller: controller);
-  addQuestionScreen.build(null); // This will conceptually add questions and might try to navigate
+  addQuestionScreen.build(null); // This call primarily simulates the AddQuestionScreen UI being built.
 
-  // Simulate adding an MCQ question via the AddQuestionScreen's builder flow
-  // Note: addQuestionScreen.build(null) in its current form will attempt navigation.
-  // For this main, we might need to suppress that or ensure questions are added before it navigates.
-  // The main in add_question_screen.dart already does a good job of adding questions.
-  // Let's assume questions were added as per add_question_screen.dart's main().
+  // The call to addQuestionScreen.build(null) above doesn't add questions itself in this script.
+  // For this main function, we'll manually add questions to the controller
+  // to demonstrate the QuizPreviewScreen.
   if (controller.quizState.questions.isEmpty) {
-      // Manually add questions if the addQuestionScreen.build(null) didn't run its full course
-      // due to conceptual navigation.
+      // Manually adding questions directly to the controller for preview:
       MCQBuilder mcqBuilder = MCQBuilder(onQuestionCreated: (q) => controller.addQuestion(q));
       mcqBuilder.setQuestionText("What is 2+2?");
       mcqBuilder.updateOptionText(0, "3");
