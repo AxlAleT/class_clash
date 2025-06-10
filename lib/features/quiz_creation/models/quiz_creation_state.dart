@@ -1,4 +1,4 @@
-import 'package_model.dart'; // This will be created in a later step
+import 'question_model.dart'; // Corrected import
 
 class QuizCreationState {
   String title;

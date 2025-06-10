@@ -1,6 +1,8 @@
 // This is a conceptual Flutter widget.
 // In a real Flutter app, this would import 'package:flutter/material.dart';
-
+// For GoRouter navigation
+import 'package:flutter/widgets.dart'; // Required for WidgetsBinding
+import 'package:go_router/go_router.dart';
 import '../controllers/quiz_creation_controller.dart';
 
 class QuizSetupScreen {
@@ -10,7 +12,8 @@ class QuizSetupScreen {
   QuizSetupScreen({required this.controller});
 
   // Conceptual representation of building the UI
-  void build() {
+  // Added dynamic context for navigation
+  void build(dynamic context) {
     print("Building QuizSetupScreen UI...");
     // Example of how UI elements would interact with the controller
     // TextField for title
@@ -24,9 +27,17 @@ class QuizSetupScreen {
     print("Quiz title set to: ${controller.quizState.title}");
     print("Quiz description set to: ${controller.quizState.description}");
 
-    // In a real app, navigation to the next screen would happen here
-    // e.g., Navigator.push(context, MaterialPageRoute(builder: (_) => AddQuestionScreen()));
-    print("Navigating to AddQuestionScreen (conceptually)...");
+    // In a real app, navigation to the next screen would happen here via a button.
+    // For simulation, we navigate after "filling" the fields.
+    // Using WidgetsBinding.instance.addPostFrameCallback to simulate navigation after build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context is BuildContext) { // Check if context is a valid BuildContext
+        context.go('/quiz/create/add-question', extra: controller);
+        print("QuizSetupScreen: Navigating to /quiz/create/add-question");
+      } else {
+        print("QuizSetupScreen: Conceptual navigation to AddQuestionScreen (context not a BuildContext).");
+      }
+    });
   }
 
   void updateTitle(String title) {
@@ -47,8 +58,9 @@ class QuizSetupScreen {
 void main() {
   final controller = QuizCreationController();
   final quizSetupScreen = QuizSetupScreen(controller: controller);
-  quizSetupScreen.build(); // Simulate building and interacting with the screen
+  // In a real app, build would be called by Flutter framework with a BuildContext
+  quizSetupScreen.build(null); // Simulate building and interacting with the screen (null for context)
 
   // After setup, the user would typically navigate to add questions.
-  // This would be handled by button presses in a real UI.
+  // This is now simulated via addPostFrameCallback in the build method.
 }

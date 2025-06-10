@@ -1,6 +1,7 @@
 // This is a conceptual Flutter widget.
 // In a real Flutter app, this would import 'package:flutter/material.dart';
-
+// For GoRouter navigation
+import 'package:go_router/go_router.dart';
 import '../controllers/quiz_creation_controller.dart';
 import '../models/question_model.dart';
 // We might need specific question types if display logic differs greatly
@@ -44,28 +45,38 @@ class QuizPreviewScreen {
   }
 
   // Conceptual actions
-  void saveQuiz() {
+  // Added dynamic context for navigation and renamed to avoid conflict
+  void saveAndExit(dynamic context) {
     print("\nQuizPreviewScreen: Save Quiz action triggered.");
     controller.saveQuiz(); // This will print save messages and reset the state
-    print("QuizPreviewScreen: Navigating away (e.g., to a dashboard)...");
+    print("QuizPreviewScreen: Navigating to /quizzes (quiz list)...");
+    if (context is BuildContext) {
+      context.go('/quizzes');
+    } else {
+      print("QuizPreviewScreen: Conceptual navigation to /quizzes (context not BuildContext).");
+    }
   }
 
-  void editQuizSetup() {
+  // Added dynamic context for navigation
+  void editQuizSetup(dynamic context) {
     print("\nQuizPreviewScreen: Edit Quiz Setup action triggered.");
-    // In a real app, navigate to QuizSetupScreen with the current controller state
-    // For simulation:
-    // final quizSetupScreen = QuizSetupScreen(controller: controller);
-    // quizSetupScreen.build(); // To show it again
-    print("QuizPreviewScreen: Navigating to QuizSetupScreen (conceptually)...");
+    if (context is BuildContext) {
+      context.go('/quiz/create/setup', extra: controller);
+      print("QuizPreviewScreen: Navigating to /quiz/create/setup");
+    } else {
+      print("QuizPreviewScreen: Conceptual navigation to QuizSetupScreen (context not BuildContext).");
+    }
   }
 
-  void goToAddQuestions() {
+  // Added dynamic context for navigation
+  void goToAddQuestions(dynamic context) {
     print("\nQuizPreviewScreen: Add More Questions action triggered.");
-    // In a real app, navigate to AddQuestionScreen
-    // For simulation:
-    // final addQuestionScreen = AddQuestionScreen(controller: controller);
-    // addQuestionScreen.build();
-    print("QuizPreviewScreen: Navigating to AddQuestionScreen (conceptually)...");
+    if (context is BuildContext) {
+      context.go('/quiz/create/add-question', extra: controller);
+      print("QuizPreviewScreen: Navigating to /quiz/create/add-question");
+    } else {
+      print("QuizPreviewScreen: Conceptual navigation to AddQuestionScreen (context not BuildContext).");
+    }
   }
 }
 
@@ -76,58 +87,41 @@ void main() {
   controller.updateQuizTitle("Sample Preview Quiz");
   controller.updateQuizDescription("This is a quiz to demonstrate the preview screen.");
 
-  // Add a few questions (requires MCQQuestion model to be available)
-  // For this main, we need to import MCQQuestion if not already available globally
-  // Assuming mcq_question_model.dart is in ../models/
-  // To run this main independently, you might need to adjust paths or ensure models are accessible.
-  // For simplicity, let's assume we can create MCQQuestion instances here.
-  // If running this file standalone, you'd need:
-  // import '../models/mcq_question_model.dart';
-  // For now, we'll rely on the fact that MCQQuestion was defined in a previous step.
-  // The subtask runner should handle the full context.
-
-  // If MCQQuestion is not directly importable here for a standalone main,
-  // this part would need to be within a context where it is.
-  // However, the class itself (QuizPreviewScreen) is fine.
-  // The following lines for adding questions are for demonstration and might need
-  // the specific MCQQuestion class.
-
-  // Let's try to add questions using the controller's methods
-  // Assuming an MCQQuestion can be constructed. We need its definition.
-  // To make this main runnable, we'd need Question and MCQQuestion definitions
-  // or use placeholders like in AddQuestionScreen's initial main.
-  // For now, this part of main is more illustrative of controller state.
-
-  // To properly test, let's use the controller as it would be after adding questions
-  final addQuestionScreen = AddQuestionScreen(controller: controller); // to add questions
+  // Add questions using AddQuestionScreen's logic (which adds to controller)
+  final addQuestionScreen = AddQuestionScreen(controller: controller);
+  addQuestionScreen.build(null); // This will conceptually add questions and might try to navigate
 
   // Simulate adding an MCQ question via the AddQuestionScreen's builder flow
-  addQuestionScreen._updateQuestionBuilder('MCQ'); // Ensure MCQBuilder is selected
-  if (addQuestionScreen.selectedQuestionBuilder is MCQBuilder) {
-    MCQBuilder mcqBuilder = addQuestionScreen.selectedQuestionBuilder as MCQBuilder;
-    mcqBuilder.setQuestionText("What is 2+2?");
-    mcqBuilder.updateOptionText(0, "3");
-    mcqBuilder.updateOptionText(1, "4");
-    mcqBuilder.setCorrectAnswer(1);
-    mcqBuilder.finalizeQuestion(); // This adds the question to the controller
+  // Note: addQuestionScreen.build(null) in its current form will attempt navigation.
+  // For this main, we might need to suppress that or ensure questions are added before it navigates.
+  // The main in add_question_screen.dart already does a good job of adding questions.
+  // Let's assume questions were added as per add_question_screen.dart's main().
+  if (controller.quizState.questions.isEmpty) {
+      // Manually add questions if the addQuestionScreen.build(null) didn't run its full course
+      // due to conceptual navigation.
+      MCQBuilder mcqBuilder = MCQBuilder(onQuestionCreated: (q) => controller.addQuestion(q));
+      mcqBuilder.setQuestionText("What is 2+2?");
+      mcqBuilder.updateOptionText(0, "3");
+      mcqBuilder.updateOptionText(1, "4");
+      mcqBuilder.setCorrectAnswer(1);
+      mcqBuilder.finalizeQuestion();
+
+      MCQBuilder mcqBuilder2 = MCQBuilder(onQuestionCreated: (q) => controller.addQuestion(q));
+      mcqBuilder2.setQuestionText("Red Planet?");
+      mcqBuilder2.updateOptionText(0, "Earth");
+      mcqBuilder2.updateOptionText(1, "Mars");
+      mcqBuilder2.setCorrectAnswer(1);
+      mcqBuilder2.finalizeQuestion();
+      print("Manually added questions for QuizPreviewScreen main. Total: ${controller.quizState.questions.length}");
   }
 
-  addQuestionScreen._updateQuestionBuilder('MCQ'); // Select again for a new question
-  if (addQuestionScreen.selectedQuestionBuilder is MCQBuilder) {
-    MCQBuilder mcqBuilder2 = addQuestionScreen.selectedQuestionBuilder as MCQBuilder;
-    mcqBuilder2.setQuestionText("Which planet is known as the Red Planet?");
-    mcqBuilder2.updateOptionText(0, "Earth");
-    mcqBuilder2.updateOptionText(1, "Mars");
-    mcqBuilder2.setCorrectAnswer(1);
-    mcqBuilder2.finalizeQuestion();
-  }
 
   // Now the controller has questions. Let's build the preview screen.
   final previewScreen = QuizPreviewScreen(controller: controller);
   previewScreen.build();
 
-  // Simulate user actions
-  previewScreen.saveQuiz();
+  // Simulate user actions (passing null for context)
+  previewScreen.saveAndExit(null);
   // After saving, the controller's state is reset. Let's check:
   print("\n--- Previewing after save (should be empty) ---");
   final newPreviewScreen = QuizPreviewScreen(controller: controller);
@@ -136,6 +130,16 @@ void main() {
   // Simulate refilling and going to other screens
   controller.updateQuizTitle("Another Quiz");
   // (add questions again if needed)
-  // previewScreen.editQuizSetup();
-  // previewScreen.goToAddQuestions();
+  if (controller.quizState.questions.isEmpty) { // Add a question to make sense for navigation
+      MCQBuilder mcqBuilder = MCQBuilder(onQuestionCreated: (q) => controller.addQuestion(q));
+      mcqBuilder.setQuestionText("Capital of France?");
+      mcqBuilder.updateOptionText(0, "Paris");
+      mcqBuilder.setCorrectAnswer(0);
+      mcqBuilder.finalizeQuestion();
+  }
+  print("\n--- Simulating navigation from preview (with 'Another Quiz') ---");
+  final previewScreen2 = QuizPreviewScreen(controller: controller);
+  previewScreen2.build();
+  previewScreen2.editQuizSetup(null);
+  previewScreen2.goToAddQuestions(null);
 }

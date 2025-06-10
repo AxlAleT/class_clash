@@ -1,5 +1,8 @@
+import 'dart:convert'; // For printing the map nicely, if desired
+
 import '../models/quiz_creation_state.dart';
-import '../models/question_model.dart'; // This will be created in a later step
+import '../models/question_model.dart';
+import '../models/mcq_question_model.dart'; // Import MCQQuestion
 
 // For a Flutter app, this would typically extend ChangeNotifier or be managed by a framework like Riverpod or BLoC.
 // For this example, we'll keep it as a plain Dart class.
@@ -46,15 +49,58 @@ class QuizCreationController {
     }
   }
 
-  // Method to save the quiz (implementation would depend on backend/storage)
+  // Method to save the quiz
   void saveQuiz() {
-    // Logic to save _quizState
-    // For example, convert to JSON and send to an API or save locally
-    print('Quiz saved: ${_quizState.title}');
-    print('Description: ${_quizState.description}');
-    print('Questions: ${_quizState.questions.length}');
-    // Reset state after saving, or navigate away
+    final quizId = DateTime.now().millisecondsSinceEpoch.toString();
+    final List<Map<String, dynamic>> questionsData = [];
+
+    for (int i = 0; i < _quizState.questions.length; i++) {
+      final question = _quizState.questions[i];
+      final questionId = '${quizId}_q$i';
+      final Map<String, dynamic> questionData = {
+        'id': questionId,
+        'title': question.questionText,
+        // 'description': '', // Not available on Question model directly
+        // 'points': 0, // Not available on Question model
+        // 'timeLimit': 30, // Not available on Question model
+      };
+
+      if (question is MCQQuestion) {
+        questionData['questionType'] = 'single_choice'; // Based on MCQQuestion structure
+        questionData['metadata'] = {
+          'options': question.options,
+          'correctOptionIndices': [question.correctAnswerIndex],
+          'allowMultipleSelections': false, // MCQQuestion has a single correctAnswerIndex
+          // 'randomizeOptions': true, // Defaulting, not in model
+        };
+      } else {
+        // Handle other question types or provide a default
+        questionData['questionType'] = 'unknown';
+        questionData['metadata'] = {};
+      }
+      questionsData.add(questionData);
+    }
+
+    final quizMap = {
+      'id': quizId,
+      'title': _quizState.title,
+      'description': _quizState.description,
+      'questions': questionsData,
+      'type': 'standard',
+      // Fields like 'gamificationStrategies', 'currentQuestionIndex', 'totalPoints', 'currentStreak'
+      // are not part of creation state and would typically be managed elsewhere or have defaults.
+    };
+
+    // Simulate submitting data (e.g., print to console)
+    // Using jsonEncode for a slightly cleaner print, but simple print(quizMap) works too.
+    print('Simulating Quiz Submission:');
+    JsonEncoder encoder = JsonEncoder.withIndent('  ');
+    String prettyPrinted = encoder.convert(quizMap);
+    print(prettyPrinted);
+
+    // Reset state after saving
     _quizState = QuizCreationState();
     // In a real app, notify listeners here
+    print('Quiz state has been reset.');
   }
 }

@@ -1,6 +1,8 @@
 // This is a conceptual Flutter widget.
 // In a real Flutter app, this would import 'package:flutter/material.dart';
-
+// For GoRouter navigation
+import 'package:flutter/widgets.dart'; // Required for WidgetsBinding
+import 'package:go_router/go_router.dart';
 import '../controllers/quiz_creation_controller.dart';
 import '../models/question_model.dart';
 import '../models/mcq_question_model.dart'; // Added import
@@ -46,7 +48,8 @@ class AddQuestionScreen {
   }
 
   // Conceptual representation of building the UI
-  void build() {
+  // Added dynamic context for navigation
+  void build(dynamic context) {
     print("Building AddQuestionScreen UI...");
 
     // 1. Display QuestionTypeSelector (conceptually)
@@ -73,6 +76,26 @@ class AddQuestionScreen {
     //    and then onQuestionCreated callback.
     //    This is simplified here; the builder itself would handle its internal save.
     print("AddQuestionScreen built. Current builder: ${selectedQuestionBuilder.runtimeType}");
+
+    // Conceptually, a button here would call: previewQuiz(context);
+    // For simulation:
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Assuming after adding some questions, user wants to preview.
+      // In a real app, this would be a distinct button press.
+      if (controller.quizState.questions.isNotEmpty) { // Only navigate if questions exist
+          previewQuiz(context);
+      }
+    });
+  }
+
+  void previewQuiz(dynamic context) {
+    print("\nAddQuestionScreen: Preview Quiz action triggered.");
+    if (context is BuildContext) {
+      context.go('/quiz/create/preview', extra: controller);
+      print("AddQuestionScreen: Navigating to /quiz/create/preview");
+    } else {
+      print("AddQuestionScreen: Conceptual navigation to QuizPreviewScreen (context not a BuildContext).");
+    }
   }
 
   // Simulating saving the question from the current builder
@@ -96,42 +119,56 @@ void main() {
   // Simulate user selecting 'MCQ' (default or via selector)
   // The initial _updateQuestionBuilder in the constructor already sets up an MCQBuilder
   // and its onQuestionCreated callback is wired to controller.addQuestion.
-  addQuestionScreen.build();
+  // Pass null for context in this conceptual main.
+  addQuestionScreen.build(null);
 
   // Simulate user filling out the MCQ form using the currently selected builder
   // and then the builder internally calling its onQuestionCreated callback.
-  if (addQuestionScreen.selectedQuestionBuilder is MCQBuilder) {
-    MCQBuilder currentMCQBuilder = addQuestionScreen.selectedQuestionBuilder as MCQBuilder;
-    print("\nSimulating user interaction with the current MCQBuilder:");
-    currentMCQBuilder.setQuestionText("What is Flutter?");
-    currentMCQBuilder.updateOptionText(0, "A bird");
-    currentMCQBuilder.updateOptionText(1, "A UI toolkit");
-    currentMCQBuilder.addOption();
-    currentMCQBuilder.updateOptionText(2, "A programming language");
-    currentMCQBuilder.setCorrectAnswer(1); // "A UI toolkit"
-    currentMCQBuilder.finalizeQuestion(); // This will trigger onQuestionCreated
+  // This simulation part needs to be careful if build() itself triggers navigation.
+  // For the main() conceptual test, let's assume finalizeQuestion triggers the callback
+  // which adds a question, and THEN the addPostFrameCallback in build() would navigate.
+
+  if (controller.quizState.questions.isEmpty) { // Avoid re-triggering navigation if already happened
+    if (addQuestionScreen.selectedQuestionBuilder is MCQBuilder) {
+      MCQBuilder currentMCQBuilder = addQuestionScreen.selectedQuestionBuilder as MCQBuilder;
+      print("\nSimulating user interaction with the current MCQBuilder:");
+      currentMCQBuilder.setQuestionText("What is Flutter?");
+      currentMCQBuilder.updateOptionText(0, "A bird");
+      currentMCQBuilder.updateOptionText(1, "A UI toolkit");
+      currentMCQBuilder.addOption();
+      currentMCQBuilder.updateOptionText(2, "A programming language");
+      currentMCQBuilder.setCorrectAnswer(1); // "A UI toolkit"
+      currentMCQBuilder.finalizeQuestion(); // This will trigger onQuestionCreated
+    }
   }
+
 
   // To test adding another question, we'd typically simulate changing type or just adding another of the same.
   // Let's simulate creating and saving another MCQ directly through a new builder instance for clarity.
-  print("\nSimulating adding another MCQ question (distinct builder instance):");
-  MCQBuilder anotherMcqBuilder = MCQBuilder(
-    onQuestionCreated: (Question q) {
-      controller.addQuestion(q);
-      print("Another MCQ Question added to controller: ${q.questionText}");
-      if (q is MCQQuestion) { // Displaying the MCQ details
-        q.display();
+  // This will also trigger the navigation in build() if called again.
+  // For this conceptual main, the first finalizeQuestion() would have added a question,
+  // and then the build()'s post-frame callback would attempt navigation.
+  if (controller.quizState.questions.length < 2) { // Avoid adding too many if build is re-entrant
+    print("\nSimulating adding another MCQ question (distinct builder instance):");
+    MCQBuilder anotherMcqBuilder = MCQBuilder(
+      onQuestionCreated: (Question q) {
+        controller.addQuestion(q);
+        print("Another MCQ Question added to controller: ${q.questionText}");
+        if (q is MCQQuestion) { // Displaying the MCQ details
+          q.display();
+        }
       }
-    }
-  );
-  // Simulate user filling data in anotherMcqBuilder UI...
-  anotherMcqBuilder.build(); // Simulate UI build
-  anotherMcqBuilder.setQuestionText("What is Dart?");
-  anotherMcqBuilder.updateOptionText(0, "A programming language");
-  anotherMcqBuilder.updateOptionText(1, "A type of missile");
-  anotherMcqBuilder.setCorrectAnswer(0);
-  // Then user clicks "Save" in its UI, which calls finalizeQuestion()
-  anotherMcqBuilder.finalizeQuestion(); // This will call onQuestionCreated
+    );
+    // Simulate user filling data in anotherMcqBuilder UI...
+    anotherMcqBuilder.build(); // Simulate UI build
+    anotherMcqBuilder.setQuestionText("What is Dart?");
+    anotherMcqBuilder.updateOptionText(0, "A programming language");
+    anotherMcqBuilder.updateOptionText(1, "A type of missile");
+    anotherMcqBuilder.setCorrectAnswer(0);
+    // Then user clicks "Save" in its UI, which calls finalizeQuestion()
+    anotherMcqBuilder.finalizeQuestion(); // This will call onQuestionCreated
+  }
+
 
   print("\nTotal questions in controller: ${controller.quizState.questions.length}");
   if (controller.quizState.questions.isNotEmpty) {
@@ -141,4 +178,5 @@ void main() {
         controller.quizState.questions[q_idx].display();
     }
   }
+  // The build method's post-frame callback would navigate to preview at this point if questions exist.
 }
