@@ -47,15 +47,15 @@ final GoRouter router = GoRouter(
           // Handle error or redirect if controller is not passed
           // For simplicity, returning an error screen or redirecting to /create
           return Scaffold(
-            appBar: AppBar(title: Text("Error")),
+            appBar: AppBar(title: const Text("Error")),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Error: QuizCreationController not found.'),
+                  const Text('Error: QuizCreationController not found.'),
                   ElevatedButton(
                     onPressed: () => context.go('/create'),
-                    child: Text('Start Over'),
+                    child: const Text('Start Over'),
                   )
                 ],
               ),
