@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:developer' as developer;
 import 'package:logging/logging.dart';
 
 import '../features/quiz/factories/quiz_factory.dart';
@@ -65,14 +64,14 @@ class QuizProvider {
     _log.fine('Adding mock quiz data');
     
     // Add the quizzes to our mock data store
-    _quizData['quiz_001'] = quiz1;
-    _quizData['quiz_002'] = quiz2;
-    _quizData['quiz_003'] = trueFalseQuizSample; // Added the new true/false quiz
+    _quizData['quiz_001'] = generalKnowledgeQuiz;
+    _quizData['quiz_002'] = dartBasicsQuiz;
+    _quizData['quiz_003'] = trueFalseChallengeQuiz;
 
     // Add some mock users for this quiz
     _quizUsers['quiz_001'] = [
-      _userFactory.createFromJson(user1),
-      _userFactory.createFromJson(user2)
+      _userFactory.createFromJson(mockUserJohnDoe),
+      _userFactory.createFromJson(mockUserJaneSmith)
     ];
     
     _log.fine('Added ${_quizData.length} mock quizzes and users for ${_quizUsers.length} quizzes');
@@ -203,7 +202,7 @@ class QuizProvider {
 
   /// List all quizzes
   Future<List<Quiz>> listQuizzes({String? userId}) async {
-    _log.info('Listing all quizzes' + (userId != null ? ' for user: $userId' : ''));
+    _log.info('Listing all quizzes${userId != null ? ' for user: $userId' : ''}');
     
     // Simulate network delay
     await Future.delayed(_mockDelay);

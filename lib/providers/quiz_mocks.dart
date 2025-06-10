@@ -1,6 +1,6 @@
 // Mock quiz and user data for QuizProvider
 
-final multipleChoiceQuestion1 = {
+final singleChoiceCapitalFranceQuestion = {
   'id': 'q1',
   'title': 'What is the capital of France?',
   'description': 'Choose the correct answer.',
@@ -15,7 +15,7 @@ final multipleChoiceQuestion1 = {
   },
 };
 
-final multipleChoiceQuestion2 = {
+final multipleChoiceStaticLanguagesQuestion = {
   'id': 'q2',
   'title': 'Which programming languages are statically typed?',
   'description': 'Select all that apply.',
@@ -30,7 +30,7 @@ final multipleChoiceQuestion2 = {
   },
 };
 
-final pointsStrategy = {
+final basicPointsGamificationStrategy = {
   'id': 'gs1',
   'name': 'Basic Points',
   'basePoints': 10,
@@ -39,43 +39,43 @@ final pointsStrategy = {
   'strategyType': 'PointsStrategy',
 };
 
-final quiz1 = {
+final generalKnowledgeQuiz = {
   'id': 'quiz_001',
   'title': 'General Knowledge Quiz',
   'description': 'Test your knowledge on various topics.',
-  'questions': [multipleChoiceQuestion1, multipleChoiceQuestion2],
-  'gamificationStrategies': [pointsStrategy],
+  'questions': [singleChoiceCapitalFranceQuestion, multipleChoiceStaticLanguagesQuestion],
+  'gamificationStrategies': [basicPointsGamificationStrategy],
   'currentQuestionIndex': 0,
   'totalPoints': 0,
   'currentStreak': 0,
   'type': 'standard',
 };
 
-final quiz2 = {
+final dartKeywordSingleChoiceQuestion = {
+  'id': 'q3',
+  'title': 'What keyword is used to declare a variable that can be assigned only once?',
+  'description': 'Choose the correct Dart keyword.',
+  'points': 100,
+  'timeLimit': 30,
+  'questionType': 'single_choice',
+  'metadata': {
+    'options': ['var', 'const', 'final', 'static'],
+    'correctOptionIndices': [2], // final
+    'allowMultipleSelections': false,
+    'randomizeOptions': true,
+  },
+};
+
+final dartBasicsQuiz = {
   'id': 'quiz_002',
   'title': 'Dart Programming Basics',
   'description': 'Test your knowledge of Dart programming fundamentals.',
-  'questions': [
-    {
-      'id': 'q3',
-      'title': 'What keyword is used to declare a variable that can be assigned only once?',
-      'description': 'Choose the correct Dart keyword.',
-      'points': 100,
-      'timeLimit': 30,
-      'questionType': 'single_choice',
-      'metadata': {
-        'options': ['var', 'const', 'final', 'static'],
-        'correctOptionIndices': [2], // final
-        'allowMultipleSelections': false,
-        'randomizeOptions': true,
-      },
-    }
-  ],
-  'gamificationStrategies': [pointsStrategy],
+  'questions': [dartKeywordSingleChoiceQuestion],
+  'gamificationStrategies': [basicPointsGamificationStrategy],
   'type': 'standard',
 };
 
-final user1 = {
+final mockUserJohnDoe = {
   'id': 'user_001',
   'displayName': 'John Doe',
   'joinedAt': DateTime.now().subtract(const Duration(days: 10)).toIso8601String(),
@@ -84,9 +84,9 @@ final user1 = {
   'quizCompletion': {'quiz_001': true},
 };
 
-final trueFalseQuestion1 = {
+final trueFalseSkyIsBlueQuestion = {
   "id": "tf001",
-  "type": "true_false", // Corrected: "type" instead of "questionType" to match factory registration
+  "type": "true_false",
   "title": "The sky is blue.",
   "description": "Is this statement true or false?",
   "points": 50,
@@ -96,9 +96,9 @@ final trueFalseQuestion1 = {
   }
 };
 
-final trueFalseQuestion2 = {
+final trueFalseFlutterIsLanguageQuestion = {
   "id": "tf002",
-  "type": "true_false", // Corrected: "type" instead of "questionType"
+  "type": "true_false",
   "title": "Flutter is a programming language.",
   "description": "Is this statement true or false?",
   "points": 50,
@@ -108,20 +108,19 @@ final trueFalseQuestion2 = {
   }
 };
 
-final trueFalseQuizSample = {
+final trueFalseChallengeQuiz = {
   'id': 'quiz_003',
   'title': 'True/False Challenge',
   'description': 'Test your knowledge with these true or false questions.',
-  'questions': [trueFalseQuestion1, trueFalseQuestion2],
-  // Assuming the same pointsStrategy can be reused or is optional
-  // 'gamificationStrategies': [pointsStrategy],
+  'questions': [trueFalseSkyIsBlueQuestion, trueFalseFlutterIsLanguageQuestion],
+  // 'gamificationStrategies': [basicPointsGamificationStrategy],
   'currentQuestionIndex': 0,
   'totalPoints': 0,
   'currentStreak': 0,
   'type': 'standard',
 };
 
-final user2 = {
+final mockUserJaneSmith = {
   'id': 'user_002',
   'displayName': 'Jane Smith',
   'joinedAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),

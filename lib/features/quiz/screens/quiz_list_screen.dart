@@ -174,10 +174,8 @@ class _QuizActions extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.edit, color: Colors.blue),
           onPressed: () {
-            // TODO: Implement edit functionality
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Edit quiz: ${quiz.title}')),
-            );
+            // Navigate to edit quiz screen
+            context.go('/quiz/edit/${quiz.id}');
           },
           tooltip: 'Edit Quiz',
         ),
