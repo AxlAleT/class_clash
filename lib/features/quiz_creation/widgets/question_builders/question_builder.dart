@@ -1,21 +1,26 @@
-// This is a conceptual Flutter widget.
-// In a real Flutter app, this would import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../models/question_model.dart';
 
 // Abstract class for widgets that build or edit a specific type of Question
-abstract class QuestionBuilder {
-  // In a real Flutter app, this would be a StatefulWidget or StatelessWidget
-  // And would likely take a Question object as a parameter for editing
-
+abstract class QuestionBuilder extends StatefulWidget {
   final Function(Question) onQuestionCreated; // Callback when a question is finalized
 
-  QuestionBuilder({required this.onQuestionCreated});
+  const QuestionBuilder({Key? key, required this.onQuestionCreated}) : super(key: key);
 
-  // Conceptual method to build the UI for creating/editing this question type
-  void build();
-  // In Flutter, this would be the build(BuildContext context) method returning a Widget.
+  // Concrete subclasses will provide their own State implementation
+  // and that State's build method will return the widget's UI.
 
-  // Method to get the created/edited question
-  // This might be called by a "Save Question" button in the UI
+  // Method to get the created/edited question.
+  // This will be called by the concrete implementation, typically when a "Save" button is pressed.
   Question getQuestion();
+}
+
+// Abstract base class for the State of any QuestionBuilder.
+// This allows AddQuestionScreen to use a GlobalKey<QuestionBuilderState>
+// to potentially interact with any type of question builder if needed,
+// for example, to call a reset method or the getQuestion method.
+abstract class QuestionBuilderState<T extends StatefulWidget> extends State<T> {
+  Question getQuestion();
+  // Potentially add other common methods here, e.g.:
+  // void reset(); // To clear the builder's fields
 }

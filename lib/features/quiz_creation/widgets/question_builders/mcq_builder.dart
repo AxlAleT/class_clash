@@ -1,178 +1,230 @@
-// This is a conceptual Flutter widget.
-// In a real Flutter app, this would import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../models/question_model.dart';
 import '../../models/mcq_question_model.dart';
-import 'question_builder.dart';
+import 'question_builder.dart'; // QuestionBuilderState is now in this file
 
 class MCQBuilder extends QuestionBuilder {
-  // In a real Flutter app, these would be TextEditingControllers or similar
-  String _questionText = '';
-  List<String> _options = ['Option 1', 'Option 2']; // Start with two default options
-  int _correctAnswerIndex = 0;
+  final MCQQuestion? existingQuestion;
 
-  // If editing an existing question, it could be passed in a constructor
-  MCQQuestion? _editingQuestion;
-
-  MCQBuilder({
+  const MCQBuilder({
+    Key? key,
     required super.onQuestionCreated,
-    MCQQuestion? existingQuestion, // For editing
-  }) {
-    if (existingQuestion != null) {
-      _editingQuestion = existingQuestion;
-      _questionText = existingQuestion.questionText;
-      _options = List.from(existingQuestion.options); // Important to copy
-      _correctAnswerIndex = existingQuestion.correctAnswerIndex;
-    }
-  }
-
-  // Methods to simulate UI input for question text
-  void setQuestionText(String text) {
-    _questionText = text;
-    print("MCQBuilder: Question text set to '$_questionText'");
-  }
-
-  // Methods to simulate UI input for options
-  void addOption() {
-    _options.add('New Option ${_options.length + 1}');
-    print("MCQBuilder: Option added. Options: $_options");
-    // If the new option makes the current correct answer index invalid, adjust it.
-    // (Though typically you'd select the correct one after adding all options)
-  }
-
-  void updateOptionText(int index, String text) {
-    if (index >= 0 && index < _options.length) {
-      _options[index] = text;
-      print("MCQBuilder: Option $index updated to '$text'. Options: $_options");
-    }
-  }
-
-  void removeOption(int index) {
-    if (_options.length > 1 && index >= 0 && index < _options.length) { // Keep at least one option
-      _options.removeAt(index);
-      if (_correctAnswerIndex == index) {
-        _correctAnswerIndex = 0; // Default to first if correct was removed
-      } else if (_correctAnswerIndex > index) {
-        _correctAnswerIndex--;
-      }
-      print("MCQBuilder: Option $index removed. Options: $_options. Correct answer index: $_correctAnswerIndex");
-    } else {
-      print("MCQBuilder: Cannot remove option. Need at least one option.");
-    }
-  }
-
-  // Method to simulate UI input for selecting the correct answer
-  void setCorrectAnswer(int index) {
-    if (index >= 0 && index < _options.length) {
-      _correctAnswerIndex = index;
-      print("MCQBuilder: Correct answer set to index $index (${_options[index]})");
-    }
-  }
+    this.existingQuestion,
+  }) : super(key: key);
 
   @override
-  void build() {
-    print("Building MCQBuilder UI...");
-    print("  Question Text Input: [Current: '$_questionText']");
-    for (int i = 0; i < _options.length; i++) {
-      print("  Option ${i+1} Input: [Current: '${_options[i]}'] ${i == _correctAnswerIndex ? '(Correct)' : ''}");
-    }
-    print("  [Add Option Button]");
-    print("  [Remove Option Button(s)]");
-    print("  [Save/Finalize Question Button]");
-    // In a real UI, this would render text fields, radio buttons, buttons etc.
-  }
+  State<MCQBuilder> createState() => _MCQBuilderState();
 
   @override
   MCQQuestion getQuestion() {
-    if (_questionText.isEmpty || _options.isEmpty) {
-      // In a real app, show validation error
-      print("Error: Question text or options cannot be empty.");
-      // Return a default or throw error, depending on desired handling
-      // For now, creating a potentially invalid question if fields are empty
-    }
-    MCQQuestion question;
-    if (_editingQuestion != null) {
-        // If editing, update the existing instance or create new based on it
-        _editingQuestion!.questionText = _questionText;
-        _editingQuestion!.options = List.from(_options);
-        _editingQuestion!.correctAnswerIndex = _correctAnswerIndex;
-        question = _editingQuestion!;
-    } else {
-        question = MCQQuestion(
-            questionText: _questionText,
-            options: List.from(_options), // Use a copy
-            correctAnswerIndex: _correctAnswerIndex,
-        );
-    }
-    print("MCQBuilder: Generated MCQQuestion - Text: ${question.questionText}, Options: ${question.options}, Correct Index: ${question.correctAnswerIndex}");
-    return question;
-  }
-
-  // Typically, a "Save" button within this builder's UI would call this
-  void finalizeQuestion() {
-    MCQQuestion q = getQuestion();
-    // Perform validation before calling back
-    if (q.questionText.trim().isEmpty) {
-        print("MCQBuilder Error: Question text cannot be empty.");
-        return;
-    }
-    if (q.options.any((opt) => opt.trim().isEmpty)) {
-        print("MCQBuilder Error: Option text cannot be empty.");
-        return;
-    }
-    onQuestionCreated(q); // Call the callback passed from AddQuestionScreen
-    print("MCQBuilder: Question finalized and onQuestionCreated callback invoked.");
+    // This method is now more of a conceptual placeholder from the abstract class.
+    // The actual question creation and callback invocation will happen within the State.
+    // It might be good to have the State object accessible if we need to call this from outside,
+    // or this method could be removed from the abstract class if onQuestionCreated is sufficient.
+    // For now, let's throw an UnimplementedError as it shouldn't be called directly like this anymore.
+    throw UnimplementedError(
+        "getQuestion() should be called from within the State's save method.");
   }
 }
 
-// Example of how this builder might be used (conceptual)
-void main() {
-  print("--- Creating a new MCQ Question ---");
-  final mcqBuilder = MCQBuilder(
-    onQuestionCreated: (Question question) {
-      print("Callback: MCQ Question created/updated: ${question.questionText}");
-      question.display();
+class _MCQBuilderState extends QuestionBuilderState<MCQBuilder> { // Extend QuestionBuilderState
+  late TextEditingController _questionController;
+  final List<TextEditingController> _optionControllers = [];
+  int? _correctAnswerIndex;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _questionController =
+        TextEditingController(text: widget.existingQuestion?.questionText ?? '');
+
+    if (widget.existingQuestion != null) {
+      _correctAnswerIndex = widget.existingQuestion!.correctAnswerIndex;
+      for (var option in widget.existingQuestion!.options) {
+        _addOptionController(optionText: option);
+      }
+    } else {
+      // Start with two empty options for a new question
+      _addOptionController();
+      _addOptionController();
     }
-  );
+  }
 
-  mcqBuilder.build(); // Simulate initial UI build
-  mcqBuilder.setQuestionText("What is the capital of France?");
-  mcqBuilder.updateOptionText(0, "Paris");
-  mcqBuilder.updateOptionText(1, "London");
-  mcqBuilder.addOption(); // Adds 'New Option 3'
-  mcqBuilder.updateOptionText(2, "Berlin");
-  mcqBuilder.setCorrectAnswer(0); // Paris
-  mcqBuilder.build(); // Simulate UI update
+  void _addOptionController({String optionText = ''}) {
+    final controller = TextEditingController(text: optionText);
+    _optionControllers.add(controller);
+  }
 
-  // Simulate user clicking "Save" in the builder's UI
-  mcqBuilder.finalizeQuestion();
+  @override
+  void dispose() {
+    _questionController.dispose();
+    for (var controller in _optionControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
-  MCQQuestion createdQuestion = mcqBuilder.getQuestion(); // get the question for further use if needed
+  void _addOption() {
+    setState(() {
+      _addOptionController();
+    });
+  }
 
-  print("\n--- Editing an existing MCQ Question ---");
-  MCQQuestion existingQ = MCQQuestion(
-      questionText: "Old question",
-      options: ["Old Opt 1", "Old Opt 2"],
-      correctAnswerIndex: 1
-  );
-  print("Existing question before edit:");
-  existingQ.display();
+  void _removeOption(int index) {
+    if (_optionControllers.length <= 2) {
+      // Show a snackbar or some feedback: Cannot have less than 2 options
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Cannot have less than two options.")));
+      return;
+    }
+    setState(() {
+      _optionControllers[index].dispose();
+      _optionControllers.removeAt(index);
+      if (_correctAnswerIndex == index) {
+        _correctAnswerIndex = null; // Or 0, depending on desired behavior
+      } else if (_correctAnswerIndex != null && _correctAnswerIndex! > index) {
+        _correctAnswerIndex = _correctAnswerIndex! - 1;
+      }
+    });
+  }
 
-  final mcqEditor = MCQBuilder(
-    onQuestionCreated: (Question question) {
-      print("Callback: MCQ Question updated: ${question.questionText}");
-      question.display();
-    },
-    existingQuestion: existingQ.clone() // Pass a clone to edit
-  );
+  void _setCorrectAnswer(int? index) {
+    setState(() {
+      _correctAnswerIndex = index;
+    });
+  }
 
-  mcqEditor.build();
-  mcqEditor.setQuestionText("What is 2 + 2?");
-  mcqEditor.updateOptionText(0, "3");
-  mcqEditor.updateOptionText(1, "4");
-  mcqEditor.setCorrectAnswer(1);
-  mcqEditor.build();
-  mcqEditor.finalizeQuestion();
+  void _saveQuestion() {
+    if (_formKey.currentState!.validate()) {
+      if (_correctAnswerIndex == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a correct answer.')),
+        );
+        return;
+      }
 
-  print("\nOriginal existing question (should be unchanged if clone was passed):");
-  existingQ.display(); // Verify original is unchanged if a clone was passed and edited.
+      final options = _optionControllers
+          .map((controller) => controller.text.trim())
+          .toList();
+
+      if (options.any((option) => option.isEmpty)) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Option text cannot be empty.')),
+        );
+        return;
+      }
+
+      final question = MCQQuestion(
+        id: widget.existingQuestion?.id ?? UniqueKey().toString(), // Generate ID if new
+        questionText: _questionController.text.trim(),
+        options: options,
+        correctAnswerIndex: _correctAnswerIndex!,
+      );
+      widget.onQuestionCreated(question);
+    }
+  }
+
+  // Implementation for the abstract method in QuestionBuilderState
+  @override
+  Question getQuestion() {
+    if (_correctAnswerIndex == null || _optionControllers.any((c) => c.text.trim().isEmpty) || _questionController.text.trim().isEmpty) {
+      throw Exception("Cannot get question when form is invalid or not complete.");
+    }
+    return MCQQuestion(
+      id: widget.existingQuestion?.id ?? UniqueKey().toString(), // Generate ID if new
+      questionText: _questionController.text.trim(),
+      options: _optionControllers.map((controller) => controller.text.trim()).toList(),
+      correctAnswerIndex: _correctAnswerIndex!,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: _questionController,
+              decoration: const InputDecoration(
+                labelText: 'Question Text',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter the question text.';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 20),
+            Text('Options:', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (_optionControllers.isEmpty)
+              const Text('Please add some options.'),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _optionControllers.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _optionControllers[index],
+                          decoration: InputDecoration(
+                            labelText: 'Option ${index + 1}',
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Option text cannot be empty.';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      RadioListTile<int?>(
+                        value: index,
+                        groupValue: _correctAnswerIndex,
+                        onChanged: _setCorrectAnswer,
+                        title: const Text('Correct'),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () => _removeOption(index),
+                        tooltip: 'Remove Option',
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _addOption,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Option'),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _saveQuestion,
+              child: const Text('Save Question'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50), // Make button wider
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

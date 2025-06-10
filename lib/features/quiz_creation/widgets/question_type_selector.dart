@@ -1,70 +1,112 @@
-// This is a conceptual Flutter widget.
-// In a real Flutter app, this would import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
-class QuestionTypeSelector {
-  // In a real Flutter app, this would be a StatefulWidget or StatelessWidget
-
+class QuestionTypeSelector extends StatefulWidget {
   final List<String> availableTypes;
-  final Function(String) onTypeSelected; // Callback when a type is selected
-  String currentSelectedType;
+  final Function(String) onTypeSelected;
+  final String? initialType;
 
-  QuestionTypeSelector({
+  const QuestionTypeSelector({
+    Key? key,
     required this.availableTypes,
     required this.onTypeSelected,
-    String? initialType,
-  }) : currentSelectedType = initialType ?? (availableTypes.isNotEmpty ? availableTypes.first : '') {
-    if (availableTypes.isEmpty) {
-      print("Warning: QuestionTypeSelector created with no available types.");
-    }
-  }
+    this.initialType,
+  }) : super(key: key);
 
-  // Conceptual representation of building the UI
-  void build() {
-    print("Building QuestionTypeSelector UI...");
-    print("Available question types: $availableTypes");
-    // In a real UI, this would be a dropdown, a list of buttons, or similar.
-    // For simulation, we can just print the types and allow programmatic selection.
-    if (currentSelectedType.isNotEmpty) {
-      print("Current selected type: $currentSelectedType");
-    } else if (availableTypes.isNotEmpty) {
-      // If no initial type, select the first one by default for simulation
-      selectType(availableTypes.first);
-    }
-  }
-
-  // Method to simulate selecting a question type (e.g., user taps a button)
-  void selectType(String type) {
-    if (availableTypes.contains(type)) {
-      currentSelectedType = type;
-      print("QuestionTypeSelector: Type '$type' selected.");
-      onTypeSelected(type); // Call the callback
-    } else {
-      print("QuestionTypeSelector: Attempted to select invalid type '$type'.");
-    }
-  }
+  @override
+  State<QuestionTypeSelector> createState() => _QuestionTypeSelectorState();
 }
 
-// Example of how this widget might be used (conceptual)
-void main() {
-  final selector = QuestionTypeSelector(
-    availableTypes: ['Multiple Choice', 'True/False', 'Short Answer'],
-    onTypeSelected: (String selectedType) {
-      print("Callback: User selected $selectedType");
-      // In a real app, this callback would trigger updating the QuestionBuilder
-      // in the AddQuestionScreen.
-    },
-    initialType: 'Multiple Choice',
-  );
+class _QuestionTypeSelectorState extends State<QuestionTypeSelector> {
+  late String _selectedType;
 
-  selector.build(); // Simulate building the UI
+  @override
+  void initState() {
+    super.initState();
+    _initializeSelectedType();
+  }
 
-  // Simulate user interactions
-  print("\nSimulating user selecting 'True/False':");
-  selector.selectType('True/False');
+  void _initializeSelectedType() {
+    if (widget.initialType != null && widget.availableTypes.contains(widget.initialType!)) {
+      _selectedType = widget.initialType!;
+    } else if (widget.availableTypes.isNotEmpty) {
+      _selectedType = widget.availableTypes.first;
+    } else {
+      // Handle case where availableTypes is empty or initialType is invalid
+      // This ideally shouldn't happen if parent provides valid data.
+      // For robustness, we could set it to a placeholder or throw an error.
+      // For now, if types are available, use first, otherwise this widget will be problematic.
+      _selectedType = ''; // Or handle error appropriately
+      if (widget.availableTypes.isEmpty) {
+          print("Error: QuestionTypeSelector has no available types to select.");
+      }
+    }
+  }
 
-  print("\nSimulating user selecting 'Short Answer':");
-  selector.selectType('Short Answer');
+  @override
+  void didUpdateWidget(QuestionTypeSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the initialType provided by the parent changes and it's different from the current one
+    if (widget.initialType != null &&
+        widget.availableTypes.contains(widget.initialType!) &&
+        widget.initialType != _selectedType) {
+      setState(() {
+        _selectedType = widget.initialType!;
+      });
+      // No need to call widget.onTypeSelected here as this is an external change,
+      // the parent already knows and triggered this. Parent should handle consequences.
+    } else if (widget.initialType == null && _selectedType != widget.availableTypes.first && widget.availableTypes.isNotEmpty) {
+      // If initialType becomes null, and current type is not the default, reset to default
+      // This might be an edge case depending on desired behavior.
+      // Generally, parent controls initialType. If it's removed, behavior might need clarification.
+      // For now, let's assume parent manages this by providing a valid initialType or none.
+      // If available types change and _selectedType is no longer valid, reset.
+      if (!widget.availableTypes.contains(_selectedType)) {
+        setState(() {
+          _selectedType = widget.availableTypes.first;
+        });
+        widget.onTypeSelected(_selectedType);
+      }
+    }
+  }
 
-  print("\nSimulating user selecting an invalid type:");
-  selector.selectType('Essay'); // This type is not in availableTypes
+  @override
+  Widget build(BuildContext context) {
+    if (widget.availableTypes.isEmpty) {
+      return const Text("No question types available.");
+    }
+    // Ensure _selectedType is valid, especially after potential list changes
+    // This check is crucial if availableTypes can change dynamically and _selectedType becomes invalid
+    if (!widget.availableTypes.contains(_selectedType) && widget.availableTypes.isNotEmpty) {
+        _selectedType = widget.availableTypes.first; // Fallback to the first available type
+    }
+
+
+    return DropdownButtonFormField<String>(
+      value: _selectedType,
+      decoration: const InputDecoration(
+        labelText: 'Select Question Type',
+        border: OutlineInputBorder(),
+      ),
+      items: widget.availableTypes.map<DropdownMenuItem<String>>((String value) {
+        return DropdownMenuItem<String>(
+          value: value,
+          child: Text(value),
+        );
+      }).toList(),
+      onChanged: (String? newValue) {
+        if (newValue != null) {
+          setState(() {
+            _selectedType = newValue;
+          });
+          widget.onTypeSelected(newValue);
+        }
+      },
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please select a question type.';
+        }
+        return null;
+      },
+    );
+  }
 }

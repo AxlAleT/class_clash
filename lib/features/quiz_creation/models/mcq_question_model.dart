@@ -3,12 +3,14 @@ import 'question_model.dart';
 class MCQQuestion extends Question {
   List<String> options;
   int correctAnswerIndex; // Index of the correct option in the options list
+  // The 'id' field is inherited from the Question class.
 
   MCQQuestion({
+    required String id, // Add id to constructor
     required String questionText,
     required this.options,
     required this.correctAnswerIndex,
-  }) : super(questionText: questionText) {
+  }) : super(id: id, questionText: questionText) { // Pass id to super
     if (options.isEmpty) {
       throw ArgumentError("MCQQuestion must have at least one option.");
     }
@@ -37,6 +39,7 @@ class MCQQuestion extends Question {
   @override
   MCQQuestion clone() {
     return MCQQuestion(
+      id: id, // Include id in cloning
       questionText: questionText,
       options: List.from(options), // Create a new list for options
       correctAnswerIndex: correctAnswerIndex,
@@ -69,4 +72,7 @@ class MCQQuestion extends Question {
     }
     return false;
   }
+
+  @override
+  String get type => 'Multiple Choice';
 }
