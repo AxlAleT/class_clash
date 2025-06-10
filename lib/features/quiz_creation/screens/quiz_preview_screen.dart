@@ -113,7 +113,7 @@ class QuizPreviewScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
-            icon: const Icon(Icons.list_alt_add),
+            icon: const Icon(Icons.add_circle_outline), // Fixed icon - was list_alt_add which doesn't exist
             label: const Text('Add/Edit Questions'),
             onPressed: () {
               context.go('/quiz/create/add-question', extra: controller);
@@ -145,3 +145,4 @@ class QuizPreviewScreen extends StatelessWidget {
     );
   }
 }
+

@@ -48,18 +48,15 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
     // For now, to ensure UI updates without Provider, we manually refresh _questions.
     // In a Provider setup, this manual setState and _questions refresh might not be needed
     // if the widget tree rebuilds based on controller's notification.
-    final deletedQuestion = _questions.firstWhere((q) => q.id == questionId, orElse: () => Question(id: '', questionText: 'Unknown')); // For snackbar message
+    final deletedQuestion = _questions.firstWhere(
+      (q) => q.id == questionId,
+      orElse: () => MCQQuestion(id: '', questionText: 'Unknown', options: [''], correctAnswerIndex: 0)
+    ); // Use MCQQuestion instead of abstract Question
     setState(() {
       _questions = List.from(widget.controller.quizState.questions);
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${deletedQuestion.type} question deleted.')),
-    );
-  }
-
-  // Placeholder for edit functionality
-  void _editQuestion(Question question, int index) {
-      SnackBar(content: Text('${question.type} question deleted.')),
     );
   }
 
