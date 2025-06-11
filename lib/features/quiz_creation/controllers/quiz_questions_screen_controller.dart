@@ -1,160 +1,134 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:class_clash/features/quiz_creation/models/quiz/standard_quiz.dart';
 import 'package:class_clash/features/quiz_creation/models/questions/question_model.dart';
-import 'package:class_clash/features/quiz_creation/factory/question_factory.dart';
+import 'package:class_clash/features/quiz_creation/providers/quiz_questions_provider.dart';
+import 'package:class_clash/features/quiz/controllers/quiz_list_controller.dart';
+import 'package:go_router/go_router.dart';
 
-class QuizQuestionsScreenController extends ChangeNotifier {
-  // The quiz model being created/edited
-  StandardQuizModel _quizModel;
+// A controller that handles UI-specific logic and delegates to the provider
+class QuizQuestionsScreenController {
+  final WidgetRef ref;
+  final StandardQuizModel initialQuizData;
 
-  // Currently selected question for editing
-  int _selectedQuestionIndex = -1;
+  QuizQuestionsScreenController({
+    required this.ref,
+    required this.initialQuizData,
+  });
 
-  // Currently active question type for new questions
-  String _activeQuestionType = 'single_choice';
+  // Get provider state
+  QuizQuestionsState get state => ref.watch(quizQuestionsProvider(initialQuizData));
 
-  QuizQuestionsScreenController({required StandardQuizModel initialQuizData})
-      : _quizModel = initialQuizData;
+  // Get provider notifier
+  QuizQuestionsNotifier get notifier => ref.read(quizQuestionsProvider(initialQuizData).notifier);
 
-  // Getters
-  StandardQuizModel get quizModel => _quizModel;
-  List<QuestionModel> get questions => _quizModel.questions;
-  int get selectedQuestionIndex => _selectedQuestionIndex;
-  String get activeQuestionType => _activeQuestionType;
-  bool get hasQuestions => questions.isNotEmpty;
+  // UI-specific methods that handle user interactions and delegate to the provider
 
-  // Get supported question types from the factory
-  List<String> get supportedQuestionTypes => QuestionFactory.supportedQuestionTypes;
-
-  // Set the active question type
-  void setActiveQuestionType(String type) {
-    if (QuestionFactory.supportedQuestionTypes.contains(type)) {
-      _activeQuestionType = type;
-      notifyListeners();
+  // Handle form submission
+  void handleQuestionSaved(QuestionModel question) {
+    if (state.selectedQuestionIndex != -1) {
+      notifier.updateQuestion(state.selectedQuestionIndex, question);
+    } else {
+      notifier.addQuestion(question);
     }
   }
 
-  // Add a new question
-  void addQuestion(QuestionModel question) {
-    final updatedQuestions = List<QuestionModel>.from(_quizModel.questions)
-      ..add(question);
+  // Handle sidebar toggle
+  void toggleSidebar(bool isVisible, Function(bool) updateVisibility) {
+    updateVisibility(!isVisible);
+  }
 
-    _quizModel = StandardQuizModel(
-      id: _quizModel.id,
-      title: _quizModel.title,
-      description: _quizModel.description,
-      questions: updatedQuestions,
-      ownerId: _quizModel.ownerId,
-      createdAt: _quizModel.createdAt,
-      category: _quizModel.category,
-      isPublic: _quizModel.isPublic,
-      timeLimit: _quizModel.timeLimit,
-      settings: _quizModel.settings,
+  // Save quiz and handle navigation/dialog
+  Future<void> saveQuiz(BuildContext context) async {
+    // Delegate to provider for saving to server
+    final quizId = await notifier.saveQuizToServer();
+
+    if (quizId != null) {
+      // Show success dialog (UI-specific logic)
+      _showSuccessDialog(context, quizId);
+    } else {
+      // Show error dialog
+      _showErrorDialog(context);
+    }
+  }
+
+  // Show success dialog - UI specific logic
+  void _showSuccessDialog(BuildContext context, String quizId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Quiz Saved'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Quiz "${state.quizModel.title}" has been created with ${state.questions.length} questions.'),
+            const SizedBox(height: 16),
+            Text('Quiz ID: $quizId'),
+            const SizedBox(height: 16),
+            const Text('Your quiz is now available in the quiz list!'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // Close the dialog first
+              Navigator.of(context).pop();
+
+              // Refresh the quiz list before navigating
+              ref.read(quizListControllerProvider.notifier).loadQuizzes();
+
+              // Navigate to the quiz list route
+              GoRouter.of(context).go('/quizzes');
+            },
+            child: const Text('Go to Quiz List'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Close the dialog first
+              Navigator.of(context).pop();
+
+              // Use GoRouter to navigate to home route
+              GoRouter.of(context).go('/');
+            },
+            child: const Text('Go to Home'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Close dialog but stay on this screen
+              Navigator.of(context).pop();
+            },
+            child: const Text('Continue Editing'),
+          ),
+        ],
+      ),
     );
-
-    // Select the newly added question
-    _selectedQuestionIndex = _quizModel.questions.length - 1;
-    notifyListeners();
   }
 
-  // Update an existing question
-  void updateQuestion(int index, QuestionModel updatedQuestion) {
-    if (index >= 0 && index < _quizModel.questions.length) {
-      final updatedQuestions = List<QuestionModel>.from(_quizModel.questions);
-      updatedQuestions[index] = updatedQuestion;
-
-      _quizModel = StandardQuizModel(
-        id: _quizModel.id,
-        title: _quizModel.title,
-        description: _quizModel.description,
-        questions: updatedQuestions,
-        ownerId: _quizModel.ownerId,
-        createdAt: _quizModel.createdAt,
-        category: _quizModel.category,
-        isPublic: _quizModel.isPublic,
-        timeLimit: _quizModel.timeLimit,
-        settings: _quizModel.settings,
-      );
-
-      notifyListeners();
-    }
-  }
-
-  // Remove a question
-  void removeQuestion(int index) {
-    if (index >= 0 && index < _quizModel.questions.length) {
-      final updatedQuestions = List<QuestionModel>.from(_quizModel.questions);
-      updatedQuestions.removeAt(index);
-
-      _quizModel = StandardQuizModel(
-        id: _quizModel.id,
-        title: _quizModel.title,
-        description: _quizModel.description,
-        questions: updatedQuestions,
-        ownerId: _quizModel.ownerId,
-        createdAt: _quizModel.createdAt,
-        category: _quizModel.category,
-        isPublic: _quizModel.isPublic,
-        timeLimit: _quizModel.timeLimit,
-        settings: _quizModel.settings,
-      );
-
-      // Adjust selected question index if necessary
-      if (_selectedQuestionIndex == index) {
-        _selectedQuestionIndex = -1;
-      } else if (_selectedQuestionIndex > index) {
-        _selectedQuestionIndex--;
-      }
-
-      notifyListeners();
-    }
-  }
-
-  // Reorder questions
-  void reorderQuestions(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-
-    final updatedQuestions = List<QuestionModel>.from(_quizModel.questions);
-    final item = updatedQuestions.removeAt(oldIndex);
-    updatedQuestions.insert(newIndex, item);
-
-    _quizModel = StandardQuizModel(
-      id: _quizModel.id,
-      title: _quizModel.title,
-      description: _quizModel.description,
-      questions: updatedQuestions,
-      ownerId: _quizModel.ownerId,
-      createdAt: _quizModel.createdAt,
-      category: _quizModel.category,
-      isPublic: _quizModel.isPublic,
-      timeLimit: _quizModel.timeLimit,
-      settings: _quizModel.settings,
+  // Show error dialog - UI specific logic
+  void _showErrorDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error Saving Quiz'),
+        content: const Text('There was an error saving your quiz. Please make sure you have at least one question.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // Close the dialog
+              Navigator.of(context).pop();
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
-
-    // Update selected question index if necessary
-    if (_selectedQuestionIndex == oldIndex) {
-      _selectedQuestionIndex = newIndex;
-    } else if (_selectedQuestionIndex < oldIndex && _selectedQuestionIndex >= newIndex) {
-      _selectedQuestionIndex++;
-    } else if (_selectedQuestionIndex > oldIndex && _selectedQuestionIndex <= newIndex) {
-      _selectedQuestionIndex--;
-    }
-
-    notifyListeners();
   }
 
-  // Select a question for editing
-  void selectQuestion(int index) {
-    if (index >= -1 && index < _quizModel.questions.length) {
-      _selectedQuestionIndex = index;
-      notifyListeners();
-    }
-  }
-
-  // Get the final quiz data as JSON
-  Map<String, dynamic> getQuizJson() {
-    return _quizModel.toJson();
+  // Format question type for display - UI specific helper
+  String formatQuestionType(String type) {
+    return type.split('_').map((word) =>
+      '${word[0].toUpperCase()}${word.substring(1)}'
+    ).join(' ');
   }
 }

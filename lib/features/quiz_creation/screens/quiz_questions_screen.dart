@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:class_clash/features/quiz_creation/providers/quiz_questions_provider.dart';
 import 'package:class_clash/features/quiz_creation/models/quiz/standard_quiz.dart';
 import 'package:class_clash/features/quiz_creation/widgets/question_form.dart';
+import 'package:class_clash/features/quiz_creation/controllers/quiz_questions_screen_controller.dart';
 
 class QuizQuestionsScreen extends ConsumerStatefulWidget {
   final StandardQuizModel initialQuizData;
@@ -17,14 +18,25 @@ class QuizQuestionsScreen extends ConsumerStatefulWidget {
 }
 
 class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
-  // State for sidebar visibility
+  // State for sidebar visibility (UI-only state)
   bool _isSidebarVisible = true;
+
+  // Controller instance
+  late QuizQuestionsScreenController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = QuizQuestionsScreenController(
+      ref: ref,
+      initialQuizData: widget.initialQuizData,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Initialize the provider with the initial quiz data
-    final quizQuestionsState = ref.watch(quizQuestionsProvider(widget.initialQuizData));
-    final quizQuestionsNotifier = ref.read(quizQuestionsProvider(widget.initialQuizData).notifier);
+    // Get the provider state through the controller
+    final quizQuestionsState = _controller.state;
 
     return Scaffold(
       appBar: AppBar(
@@ -35,8 +47,10 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
             icon: Icon(_isSidebarVisible ? Icons.menu_open : Icons.menu),
             tooltip: _isSidebarVisible ? 'Hide Questions Panel' : 'Show Questions Panel',
             onPressed: () {
-              setState(() {
-                _isSidebarVisible = !_isSidebarVisible;
+              _controller.toggleSidebar(_isSidebarVisible, (isVisible) {
+                setState(() {
+                  _isSidebarVisible = isVisible;
+                });
               });
             },
           ),
@@ -44,7 +58,7 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
             icon: const Icon(Icons.save),
             tooltip: 'Save Quiz',
             onPressed: quizQuestionsState.hasQuestions ? () {
-              _saveQuiz(context, quizQuestionsNotifier);
+              _controller.saveQuiz(context);
             } : null,
           ),
         ],
@@ -72,15 +86,15 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
                     border: OutlineInputBorder(),
                   ),
                   value: quizQuestionsState.activeQuestionType,
-                  items: quizQuestionsNotifier.supportedQuestionTypes.map((type) {
+                  items: _controller.notifier.supportedQuestionTypes.map((type) {
                     return DropdownMenuItem(
                       value: type,
-                      child: Text(_formatQuestionType(type)),
+                      child: Text(_controller.formatQuestionType(type)),
                     );
                   }).toList(),
                   onChanged: (value) {
                     if (value != null) {
-                      quizQuestionsNotifier.setActiveQuestionType(value);
+                      _controller.notifier.setActiveQuestionType(value);
                     }
                   },
                 ),
@@ -94,14 +108,7 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
                         ? quizQuestionsState.questions[quizQuestionsState.selectedQuestionIndex]
                         : null,
                     onSave: (question) {
-                      if (quizQuestionsState.selectedQuestionIndex != -1) {
-                        quizQuestionsNotifier.updateQuestion(
-                          quizQuestionsState.selectedQuestionIndex,
-                          question,
-                        );
-                      } else {
-                        quizQuestionsNotifier.addQuestion(question);
-                      }
+                      _controller.handleQuestionSaved(question);
                     },
                   ),
                 ),
@@ -136,7 +143,7 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Questions (${quizQuestionsState.questions.length})',
+                            'Questions (${quizQuestionsState.questions.length}/${QuizQuestionsNotifier.maxQuestions})',
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           IconButton(
@@ -155,7 +162,7 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
                       child: quizQuestionsState.hasQuestions
                           ? ReorderableListView.builder(
                               itemCount: quizQuestionsState.questions.length,
-                              onReorder: quizQuestionsNotifier.reorderQuestions,
+                              onReorder: _controller.notifier.reorderQuestions,
                               itemBuilder: (context, index) {
                                 final question = quizQuestionsState.questions[index];
                                 return Card(
@@ -178,19 +185,19 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
                                         IconButton(
                                           icon: const Icon(Icons.edit),
                                           onPressed: () {
-                                            quizQuestionsNotifier.selectQuestion(index);
+                                            _controller.notifier.selectQuestion(index);
                                           },
                                         ),
                                         IconButton(
                                           icon: const Icon(Icons.delete),
                                           onPressed: () {
-                                            quizQuestionsNotifier.removeQuestion(index);
+                                            _controller.notifier.removeQuestion(index);
                                           },
                                         ),
                                       ],
                                     ),
                                     onTap: () {
-                                      quizQuestionsNotifier.selectQuestion(index);
+                                      _controller.notifier.selectQuestion(index);
                                       // Hide sidebar on mobile after selecting a question
                                       if (MediaQuery.of(context).size.width < 600) {
                                         setState(() {
@@ -214,25 +221,27 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
       ),
       // FAB to show the sidebar and add a new question
       floatingActionButton: FloatingActionButton(
-              onPressed: () {
-                if (!_isSidebarVisible) {
-                  // If sidebar is hidden, show it
-                  setState(() {
-                    _isSidebarVisible = true;
-                  });
-                } else {
-                  // If sidebar is visible, save current question and reset for a new one
-                  // This is equivalent to pressing "Add" button on the form
-                  // The form should handle the actual saving via its onSave callback
-
-                  // First select no question (which puts the form in "create new" mode)
-                  quizQuestionsNotifier.selectQuestion(-1);
-
-                  // Optional: scroll to the form field to make it clear we're adding a new question
-                  // This could be implemented with a ScrollController if needed
-                }
-              },
-              tooltip: !_isSidebarVisible ? 'Show Questions' : 'Add New Question',
+              onPressed: _controller.notifier.isMaxQuestionsReached && _isSidebarVisible
+                  ? null // Disable the button if max questions reached and sidebar is visible
+                  : () {
+                      if (!_isSidebarVisible) {
+                        // If sidebar is hidden, show it
+                        setState(() {
+                          _isSidebarVisible = true;
+                        });
+                      } else {
+                        // If sidebar is visible, save current question and reset for a new one
+                        _controller.notifier.selectQuestion(-1);
+                      }
+                    },
+              tooltip: !_isSidebarVisible
+                  ? 'Show Questions'
+                  : (_controller.notifier.isMaxQuestionsReached
+                      ? 'Maximum Questions Reached (${QuizQuestionsNotifier.maxQuestions})'
+                      : 'Add New Question'),
+              backgroundColor: _controller.notifier.isMaxQuestionsReached && _isSidebarVisible
+                  ? Theme.of(context).disabledColor
+                  : null,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -264,56 +273,6 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
                 ],
               ),
             ),
-    );
-  }
-
-  String _formatQuestionType(String type) {
-    return type.split('_').map((word) =>
-      '${word[0].toUpperCase()}${word.substring(1)}'
-    ).join(' ');
-  }
-
-  void _saveQuiz(BuildContext context, QuizQuestionsNotifier notifier) {
-    // Generate the quiz JSON
-    final quizJson = notifier.getQuizJson();
-
-    // Here you would typically send this JSON to your backend
-    // For demonstration, we'll just show a success dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Quiz Saved'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Quiz "${notifier.state.quizModel.title}" has been created with ${notifier.state.questions.length} questions.'),
-            const SizedBox(height: 16),
-            const Text('JSON data (for demonstration):'),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(4),
-              ),
-              height: 200,
-              child: SingleChildScrollView(
-                child: Text(quizJson.toString()),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              // Navigate back to home or quiz list
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
     );
   }
 }

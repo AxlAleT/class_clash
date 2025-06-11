@@ -2,10 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:class_clash/features/quiz_creation/models/quiz/standard_quiz.dart';
 import 'package:class_clash/features/quiz_creation/models/questions/question_model.dart';
 import 'package:class_clash/features/quiz_creation/factory/question_factory.dart';
+import 'package:class_clash/providers/quiz_providers.dart';
 
 // Quiz questions provider to manage adding/editing questions
 final quizQuestionsProvider = StateNotifierProvider.family<QuizQuestionsNotifier, QuizQuestionsState, StandardQuizModel>(
-  (ref, initialQuizData) => QuizQuestionsNotifier(initialQuizData),
+  (ref, initialQuizData) => QuizQuestionsNotifier(initialQuizData, ref),
 );
 
 // State class for quiz questions
@@ -40,11 +41,19 @@ class QuizQuestionsState {
 
 // StateNotifier for quiz questions management
 class QuizQuestionsNotifier extends StateNotifier<QuizQuestionsState> {
-  QuizQuestionsNotifier(StandardQuizModel initialQuizData)
+  final Ref _ref;
+
+  // Constants
+  static const int maxQuestions = 60;
+
+  QuizQuestionsNotifier(StandardQuizModel initialQuizData, this._ref)
       : super(QuizQuestionsState(quizModel: initialQuizData));
 
   // Get supported question types from the factory
   List<String> get supportedQuestionTypes => QuestionFactory.supportedQuestionTypes;
+
+  // Check if max questions limit is reached
+  bool get isMaxQuestionsReached => state.questions.length >= maxQuestions;
 
   // Set the active question type
   void setActiveQuestionType(String type) {
@@ -55,6 +64,11 @@ class QuizQuestionsNotifier extends StateNotifier<QuizQuestionsState> {
 
   // Add a new question
   void addQuestion(QuestionModel question) {
+    // Check if we've reached the maximum number of questions
+    if (isMaxQuestionsReached) {
+      return; // Don't add more questions if limit is reached
+    }
+
     final updatedQuestions = List<QuestionModel>.from(state.questions)..add(question);
 
     final updatedQuizModel = StandardQuizModel(
@@ -75,6 +89,35 @@ class QuizQuestionsNotifier extends StateNotifier<QuizQuestionsState> {
       quizModel: updatedQuizModel,
       selectedQuestionIndex: updatedQuestions.length - 1,
     );
+  }
+
+  // Save the quiz to the server (mock)
+  Future<String?> saveQuizToServer() async {
+    if (!state.hasQuestions) {
+      return null; // Don't save quizzes with no questions
+    }
+
+    try {
+      // Use the QuizProvider from the provider to ensure we're using the shared instance
+      final quizProvider = _ref.read(quizProviderProvider);
+      final quizData = state.quizModel.toJson();
+
+      // Generate a unique ID if one doesn't exist
+      String quizId = state.quizModel.id ?? '';
+
+      if (quizId.isEmpty) {
+        // Create a new quiz
+        quizId = await quizProvider.createQuiz(quizData);
+      } else {
+        // Update an existing quiz
+        await quizProvider.updateQuiz(quizId, quizData);
+      }
+
+      return quizId;
+    } catch (e) {
+      print('Error saving quiz: $e');
+      return null;
+    }
   }
 
   // Update an existing question
@@ -183,5 +226,16 @@ class QuizQuestionsNotifier extends StateNotifier<QuizQuestionsState> {
   // Get the final quiz data as JSON
   Map<String, dynamic> getQuizJson() {
     return state.quizModel.toJson();
+  }
+
+  // Save the quiz to the provider
+  Future<String> saveQuiz() async {
+    final quizJson = getQuizJson();
+    final quizProvider = _ref.read(quizProviderProvider);
+
+    // Create a new quiz in the provider
+    final quizId = await quizProvider.createQuiz(quizJson);
+
+    return quizId;
   }
 }
