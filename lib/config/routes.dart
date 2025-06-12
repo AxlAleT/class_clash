@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:class_clash/features/splash/screens/splash_screen.dart';
 
 import '../features/home/screens/home_screen.dart';
 import '../features/quiz/screens/quiz_list_screen.dart';
@@ -7,7 +8,13 @@ import '../features/quiz_creation/screens/quiz_data_screen.dart';
 
 // Define the route configuration
 final GoRouter router = GoRouter(
+  initialLocation: '/splash',
   routes: [
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
+
     // Home route
     GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
 
@@ -41,5 +48,5 @@ final GoRouter router = GoRouter(
         return const QuizDataScreen();
       },
     ),
-  ]
+  ],
 );
