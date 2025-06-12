@@ -1,0 +1,28 @@
+How to Implement Server Persistence
+When adding a real server for quiz persistence, you have two main approaches:
+Option 1: Replace QuizProvider with a Real Implementation
+You could create a new version of QuizProvider that maintains the same interface but connects to a real server:
+Keep the same method signatures like createQuiz(), updateQuiz(), etc.
+Replace the in-memory storage (_quizData and _quizUsers) with actual API calls
+Keep using the quizProviderProvider to provide this service to the rest of the app
+This is the cleanest approach as it maintains the same interface while changing the implementation.
+Option 2: Create a New Provider with Server Implementation
+Alternatively, you could:
+Create a new ServerQuizProvider class
+Implement a provider selection mechanism to choose between mock and server implementations
+Update the quizProviderProvider to return the appropriate implementation
+Affected Providers
+The following providers depend on the QuizProvider and would be affected:
+quizQuestionsProvider in lib/features/quiz_creation/providers/quiz_questions_provider.dart
+Uses _ref.read(quizProviderProvider) for saving quizzes
+quizSaveProvider in lib/features/quiz_creation/providers/quiz_save_provider.dart
+Directly initializes a QuizProvider in its constructor
+quizControllerProvider in lib/providers/quiz_controller_provider.dart
+Watches quizProviderProvider to get quiz data
+Recommended Approach
+I'd recommend keeping the QuizProvider interface the same and replacing its implementation with server calls. This way:
+The rest of your app won't need to change
+You can maintain the mock provider for testing
+You can easily switch between implementations
+When implementing the server version, you would replace the in-memory operations with HTTP requests to your backend API, while maintaining the same methods and return types.
+Would you like more details on how to implement a specific part of this server integration?
