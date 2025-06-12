@@ -129,7 +129,6 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
                   color: Theme.of(context).cardColor,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
                       blurRadius: 8,
                       offset: const Offset(2, 0),
                     ),
@@ -205,7 +204,7 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
                                         });
                                       }
                                     },
-                                  ),
+                                  )
                                 );
                               },
                             )
@@ -221,58 +220,59 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
       ),
       // FAB to show the sidebar and add a new question
       floatingActionButton: FloatingActionButton(
-              onPressed: _controller.notifier.isMaxQuestionsReached && _isSidebarVisible
-                  ? null // Disable the button if max questions reached and sidebar is visible
-                  : () {
-                      if (!_isSidebarVisible) {
-                        // If sidebar is hidden, show it
-                        setState(() {
-                          _isSidebarVisible = true;
-                        });
-                      } else {
-                        // If sidebar is visible, save current question and reset for a new one
-                        _controller.notifier.selectQuestion(-1);
-                      }
-                    },
-              tooltip: !_isSidebarVisible
-                  ? 'Show Questions'
-                  : (_controller.notifier.isMaxQuestionsReached
-                      ? 'Maximum Questions Reached (${QuizQuestionsNotifier.maxQuestions})'
-                      : 'Add New Question'),
-              backgroundColor: _controller.notifier.isMaxQuestionsReached && _isSidebarVisible
-                  ? Theme.of(context).disabledColor
-                  : null,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(!_isSidebarVisible ? Icons.menu : Icons.add),
-                  if (quizQuestionsState.hasQuestions && !_isSidebarVisible)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '${quizQuestionsState.questions.length}',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: 10,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
+        onPressed: _controller.notifier.isMaxQuestionsReached && _isSidebarVisible
+            ? null // Disable the button if max questions reached and sidebar is visible
+            : () {
+                if (!_isSidebarVisible) {
+                  // If sidebar is hidden, show it
+                  setState(() {
+                    _isSidebarVisible = true;
+                  });
+                } else {
+                  // If sidebar is visible, save current question and reset for a new one
+                  _controller.notifier.selectQuestion(-1);
+                  setState(() {}); // Ensure UI updates after state change
+                }
+              },
+        tooltip: !_isSidebarVisible
+            ? 'Show Questions'
+            : (_controller.notifier.isMaxQuestionsReached
+                ? 'Maximum Questions Reached (${QuizQuestionsNotifier.maxQuestions})'
+                : 'Add New Question'),
+        backgroundColor: _controller.notifier.isMaxQuestionsReached && _isSidebarVisible
+            ? Theme.of(context).disabledColor
+            : null,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(!_isSidebarVisible ? Icons.menu : Icons.add),
+            if (quizQuestionsState.hasQuestions && !_isSidebarVisible)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Text(
+                    '${quizQuestionsState.questions.length}',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontSize: 10,
                     ),
-                ],
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
-            ),
+          ],
+        ),
+      ),
     );
   }
 }
