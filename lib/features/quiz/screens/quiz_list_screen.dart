@@ -12,48 +12,60 @@ class QuizListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final quizzesAsync = ref.watch(quizListControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Available Quizzes'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => context.go('/create'),
-            tooltip: 'Create New Quiz',
+    return WillPopScope(
+      onWillPop: () async {
+        // Navigate to home screen instead of back
+        context.go('/');
+        return false; // Prevent default back navigation
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Available Quizzes'),
+          // Use a custom back button that goes to home
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/'),
           ),
-        ],
-      ),
-      body: quizzesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error loading quizzes: $error',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.read(quizListControllerProvider.notifier).loadQuizzes(),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () => context.go('/create'),
+              tooltip: 'Create New Quiz',
+            ),
+          ],
         ),
-        data: (quizzes) {
-          if (quizzes.isEmpty) {
-            return const _EmptyQuizList();
-          }
-          return _QuizListView(quizzes: quizzes);
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go('/create'),
-        tooltip: 'Create New Quiz',
-        child: const Icon(Icons.add),
+        body: quizzesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stackTrace) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error loading quizzes: $error',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => ref.read(quizListControllerProvider.notifier).loadQuizzes(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+          data: (quizzes) {
+            if (quizzes.isEmpty) {
+              return const _EmptyQuizList();
+            }
+            return _QuizListView(quizzes: quizzes);
+          },
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => context.go('/create'),
+          tooltip: 'Create New Quiz',
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }

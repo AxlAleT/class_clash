@@ -1,9 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 
-import '../../../../core/models/question.dart';
 import '../../utils/answer_notification.dart';
-import '../../utils/quiz_notifications.dart';
 import 'abstract/choice_question.dart';
 
 class MultipleChoiceQuestion extends ChoiceQuestion {

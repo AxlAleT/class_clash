@@ -5,8 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../controllers/quiz_play_controller.dart';
 import '../../../providers/quiz_controller_provider.dart';
 import '../utils/quiz_notifications.dart';
-import '../utils/answer_notification.dart'; // Add import for AnswerNotification
+import '../utils/answer_notification.dart';
 import '../../../core/models/user.dart';
+import '../../../core/utils/dialog_utils.dart';
 
 class QuizPlayScreen extends ConsumerStatefulWidget {
   final String quizId;
@@ -45,6 +46,13 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     });
   }
 
+  // Calculate progress value based on current question index and total questions
+  double _getProgressValue(QuizController controller, int currentIndex) {
+    final totalQuestions = controller.quiz?.questions.length ?? 1;
+    return (currentIndex + 1) / totalQuestions;
+  }
+
+  // Override the didPopRoute method to handle system back button
   @override
   Widget build(BuildContext context) {
     // Watch the quiz state through the controller
@@ -52,183 +60,182 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     final controller = ref.read(quizControllerProvider(widget.quizId).notifier);
     final currentQuestion = controller.currentQuestion;
 
-    // Handle different quiz states
+    // Calculate progress value
+    final progressValue = _getProgressValue(controller, quizState.currentQuestionIndex);
+
+    // Handle loading, error, and completed states
     if (quizState.status == QuizStatus.loading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Loading Quiz...')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
     if (quizState.status == QuizStatus.error) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Error')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(quizState.errorMessage ?? 'An unknown error occurred'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => context.go('/'),
-                child: const Text('Return Home'),
-              ),
-            ],
-          ),
-        ),
-      );
+      return Scaffold(body: Center(child: Text(quizState.errorMessage ?? 'An error occurred')));
     }
-
     if (quizState.status == QuizStatus.completed) {
       return _buildCompletionScreen(controller);
     }
 
-    // Check if we have a valid current question
-    if (currentQuestion == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Quiz Issue')),
-        body: const Center(child: Text('No question available')),
-      );
-    }
-
-    // Calculate progress
-    final progressValue = controller.progressPercentage;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Quiz ${controller.quiz?.title ?? ""}'),
-        actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: Text(
-                'Score: ${quizState.totalPoints}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+    // Wrap the scaffold with PopScope to handle back button
+    return PopScope<bool>(
+      canPop: false,
+      onPopInvokedWithResult: (result, didPop) async {
+        final shouldLeave = await DialogUtils.showQuitQuizDialog(context);
+        if (shouldLeave) {
+          _disposeQuizController(controller);
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Quiz ${controller.quiz?.title ?? ""}'),
+          actions: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: Text(
+                  'Score: ${quizState.totalPoints}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
+          ],
+          // Add a leading back button with confirmation
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () async {
+              final shouldLeave = await DialogUtils.showQuitQuizDialog(context);
+              if (shouldLeave && mounted) {
+                // Clean up quiz resources before navigating
+                _disposeQuizController(controller);
+                context.go('/');
+              }
+            },
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Progress indicator
-          LinearProgressIndicator(
-            value: progressValue,
-            backgroundColor: Colors.grey[300],
-            valueColor: AlwaysStoppedAnimation<Color>(
-              Theme.of(context).colorScheme.primary,
+        ),
+        body: Column(
+          children: [
+            // Progress indicator
+            LinearProgressIndicator(
+              value: progressValue,
+              backgroundColor: Colors.grey[300],
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).colorScheme.primary,
+              ),
             ),
-          ),
 
-          // Question counter and timer
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Question ${quizState.currentQuestionIndex + 1}/${controller.quiz?.questions.length ?? 0}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (currentQuestion.timeLimit > 0)
-                  Row(
-                    children: [
-                      const Icon(Icons.timer, size: 20),
-                      const SizedBox(width: 4),
-                      Text('${quizState.remainingTime}s'),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-
-          // Dynamic question widget
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
+            // Question counter and timer
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Question title
-                  Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Text(
-                      currentQuestion.title,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
+                  Text(
+                    'Question ${quizState.currentQuestionIndex + 1}/${controller.quiz?.questions.length ?? 0}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                  if (currentQuestion?.timeLimit != null && currentQuestion!.timeLimit > 0)
+                    Row(
+                      children: [
+                        const Icon(Icons.timer, size: 20),
+                        const SizedBox(width: 4),
+                        Text('${quizState.remainingTime}s'),
+                      ],
+                    ),
+                ],
+              ),
+            ),
 
-                  // Question description if available
-                  if (currentQuestion.description != null)
+            // Dynamic question widget
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  children: [
+                    // Question title
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
+                      padding: const EdgeInsets.all(24.0),
                       child: Text(
-                        currentQuestion.description!,
-                        style: const TextStyle(fontSize: 16),
+                        currentQuestion?.title ?? "Loading question...",
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ),
 
-                  // Dynamic question widget - we wrap it in a builder to preserve state
-                  Builder(
-                    builder: (context) {
-                      // This wrapping is important for animations and state preservation
-                      return AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: quizState.isAnswerSubmitted
-                            ? KeyedSubtree(
-                                key: ValueKey('feedback_${quizState.currentQuestionIndex}'),
-                                child: Column(
-                                  children: [
-                                    currentQuestion.buildFeedbackWidget(
-                                      _selectedAnswer,
-                                      currentQuestion.validateAnswer(
+                    // Question description if available
+                    if (currentQuestion?.description != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Text(
+                          currentQuestion!.description ?? "",
+                          style: const TextStyle(fontSize: 16),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+
+                    // Dynamic question widget - we wrap it in a builder to preserve state
+                    Builder(
+                      builder: (context) {
+                        // This wrapping is important for animations and state preservation
+                        return AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: quizState.isAnswerSubmitted && currentQuestion != null
+                              ? KeyedSubtree(
+                                  key: ValueKey('feedback_${quizState.currentQuestionIndex}'),
+                                  child: Column(
+                                    children: [
+                                      currentQuestion.buildFeedbackWidget(
                                         _selectedAnswer,
+                                        currentQuestion.validateAnswer(
+                                          _selectedAnswer,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 24),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        minimumSize: const Size(200, 48),
+                                      const SizedBox(height: 24),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          minimumSize: const Size(200, 48),
+                                        ),
+                                        onPressed: () => _proceedToNextQuestion(controller),
+                                        child: Text(
+                                          controller.isLastQuestion
+                                              ? 'Finish Quiz'
+                                              : 'Next Question',
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
                                       ),
-                                      onPressed: () => _proceedToNextQuestion(controller),
-                                      child: Text(
-                                        controller.isLastQuestion
-                                            ? 'Finish Quiz'
-                                            : 'Next Question',
-                                        style: const TextStyle(fontSize: 16),
+                                    ],
+                                  ),
+                                )
+                              : KeyedSubtree(
+                                  key: ValueKey('question_${quizState.currentQuestionIndex}'),
+                                  child: currentQuestion != null
+                                    ? _wrapWithAnswerHandler(
+                                        currentQuestion.buildQuestionWidget(),
+                                        controller,
+                                      )
+                                    : const Center(
+                                        child: CircularProgressIndicator(),
                                       ),
-                                    ),
-                                  ],
                                 ),
-                              )
-                            : KeyedSubtree(
-                                key: ValueKey('question_${quizState.currentQuestionIndex}'),
-                                child: _wrapWithAnswerHandler(
-                                  currentQuestion.buildQuestionWidget(),
-                                  controller,
-                                ),
-                              ),
-                      );
-                    },
-                  ),
-                ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // Dynamic gamification UI elements
-          ..._buildGamificationWidgets(controller),
-        ],
+            // Dynamic gamification UI elements
+            ..._buildGamificationWidgets(controller, quizState),
+          ],
+        ),
       ),
     );
   }
@@ -325,6 +332,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   // Build gamification widgets from the controller
   List<Widget> _buildGamificationWidgets(
     QuizController controller,
+    QuizState quizState,
   ) {
     final quiz = controller.quiz;
     if (quiz == null) return [];
@@ -368,7 +376,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                       'Morgan',
                     ];
                     final scores = {
-                      'You': controller.state.totalPoints,
+                      'You': quizState.totalPoints,
                       'Alex': 120,
                       'Jamie': 90,
                       'Taylor': 150,
@@ -387,7 +395,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
                             ? Theme.of(context)
                                 .colorScheme
                                 .primary
-                                .withOpacity(0.2)
+                                .withAlpha((0.2 * 255).round())
                             : Theme.of(context).colorScheme.surface,
                         border: participant == 'You'
                             ? Border.all(

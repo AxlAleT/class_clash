@@ -14,11 +14,15 @@ class QuizQuestionsState {
   final StandardQuizModel quizModel;
   final int selectedQuestionIndex;
   final String activeQuestionType;
+  final bool isDirty; // Added property for tracking unsaved changes
+  final bool hasUnsavedQuestionChanges; // Added property for tracking unsaved question changes
 
   QuizQuestionsState({
     required this.quizModel,
     this.selectedQuestionIndex = -1,
     this.activeQuestionType = 'single_choice',
+    this.isDirty = false,
+    this.hasUnsavedQuestionChanges = false,
   });
 
   // Getters
@@ -30,11 +34,15 @@ class QuizQuestionsState {
     StandardQuizModel? quizModel,
     int? selectedQuestionIndex,
     String? activeQuestionType,
+    bool? isDirty,
+    bool? hasUnsavedQuestionChanges,
   }) {
     return QuizQuestionsState(
       quizModel: quizModel ?? this.quizModel,
       selectedQuestionIndex: selectedQuestionIndex ?? this.selectedQuestionIndex,
       activeQuestionType: activeQuestionType ?? this.activeQuestionType,
+      isDirty: isDirty ?? this.isDirty,
+      hasUnsavedQuestionChanges: hasUnsavedQuestionChanges ?? this.hasUnsavedQuestionChanges,
     );
   }
 }
