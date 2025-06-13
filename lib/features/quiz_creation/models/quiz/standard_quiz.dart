@@ -44,22 +44,31 @@ class StandardQuizModel {
 
   // Create a quiz from JSON data
   factory StandardQuizModel.fromJson(Map<String, dynamic> json) {
+    final id = json['id'] as String?;
+    final title = json['title'] as String? ?? '';
+    final description = json['description'] as String?;
+    final questionsJson = json['questions'] as List? ?? [];
+    final ownerId = json['ownerId'] as String? ?? '';
+    final createdAt = json['createdAt'] != null
+        ? DateTime.tryParse(json['createdAt'] as String)
+        : null;
+    final category = json['category'] as String? ?? '';
+    final isPublic = json['isPublic'] as bool? ?? false;
+    final timeLimit = json['timeLimit'] as int? ?? 0;
+    final settings = (json['settings'] as Map<String, dynamic>?) ?? {};
     return StandardQuizModel(
-      id: json['id'],
-      title: json['title'],
-      description: json['description'],
-      questions: (json['questions'] as List)
-          .map((q) => _createQuestionFromJson(q))
-          .cast<QuestionModel>()
+      id: id,
+      title: title,
+      description: description,
+      questions: questionsJson
+          .map((q) => _createQuestionFromJson(q as Map<String, dynamic>))
           .toList(),
-      ownerId: json['ownerId'],
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : null,
-      category: json['category'],
-      isPublic: json['isPublic'] ?? false,
-      timeLimit: json['timeLimit'] ?? 0,
-      settings: json['settings'] ?? {},
+      ownerId: ownerId,
+      createdAt: createdAt,
+      category: category,
+      isPublic: isPublic,
+      timeLimit: timeLimit,
+      settings: settings,
     );
   }
 

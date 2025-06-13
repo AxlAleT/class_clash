@@ -185,6 +185,7 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
                                           icon: const Icon(Icons.edit),
                                           onPressed: () {
                                             _controller.notifier.selectQuestion(index);
+                                            setState(() { _isSidebarVisible = false; });
                                           },
                                         ),
                                         IconButton(
@@ -231,6 +232,7 @@ class _QuizQuestionsScreenState extends ConsumerState<QuizQuestionsScreen> {
                 } else {
                   // If sidebar is visible, save current question and reset for a new one
                   _controller.notifier.selectQuestion(-1);
+                  _isSidebarVisible = false;
                   setState(() {}); // Ensure UI updates after state change
                 }
               },

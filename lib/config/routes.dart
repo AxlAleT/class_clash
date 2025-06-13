@@ -43,9 +43,8 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/quiz/edit/:quizId',
       builder: (context, state) {
-        final quizId = state.pathParameters['quizId'] ?? '';
-        // TODO: Implement loading quiz data for editing
-        return const QuizDataScreen();
+        final quizId = state.pathParameters['quizId']!;
+        return QuizDataScreen(quizId: quizId);
       },
     ),
   ],

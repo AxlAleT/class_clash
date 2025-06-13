@@ -219,7 +219,17 @@ class QuizQuestionsNotifier extends StateNotifier<QuizQuestionsState> {
   // Select a question for editing
   void selectQuestion(int index) {
     if (index >= -1 && index < state.questions.length) {
-      state = state.copyWith(selectedQuestionIndex: index);
+      if (index != -1) {
+        // Load question type of selected question
+        final questionType = state.questions[index].questionType;
+        state = state.copyWith(
+          selectedQuestionIndex: index,
+          activeQuestionType: questionType,
+        );
+      } else {
+        // New question: just reset selection
+        state = state.copyWith(selectedQuestionIndex: index);
+      }
     }
   }
 
