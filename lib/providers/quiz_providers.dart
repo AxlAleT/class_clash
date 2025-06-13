@@ -10,6 +10,16 @@ import '../core/models/quiz.dart';
 import '../core/models/user.dart';
 import 'quiz_mocks.dart';
 
+// Create a provider for the QuizProvider class
+final quizProviderInstance = Provider<QuizProvider>((ref) => QuizProvider());
+
+// Create a provider for the list of available quizzes
+final quizzesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final provider = ref.read(quizProviderInstance);
+  final quizzes = await provider.getAllQuizzes();
+  return quizzes;
+});
+
 /// Provider class that simulates REST API operations for quizzes
 class QuizProvider {
   // Singleton pattern
@@ -324,7 +334,23 @@ class QuizProvider {
 
     return true;
   }
-}
 
-/// Riverpod provider for QuizProvider singleton
-final quizProviderProvider = Provider<QuizProvider>((ref) => QuizProvider());
+  /// Get all available quizzes as raw data
+  Future<List<Map<String, dynamic>>> getAllQuizzes() async {
+    _log.info('Getting all available quizzes as raw data');
+
+    // Simulate network delay
+    await Future.delayed(_mockDelay);
+
+    // Convert the quiz data to a list of maps
+    final quizzes = _quizData.entries.map((entry) {
+      final quiz = Map<String, dynamic>.from(entry.value);
+      // Add the ID to ensure it's in the returned data
+      quiz['id'] = entry.key;
+      return quiz;
+    }).toList();
+
+    _log.fine('Retrieved ${quizzes.length} quizzes as raw data');
+    return quizzes;
+  }
+}

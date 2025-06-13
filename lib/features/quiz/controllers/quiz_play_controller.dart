@@ -124,7 +124,7 @@ class QuizController extends StateNotifier<QuizState> {
   }
 
   /// Start the quiz
-  void startQuiz() {
+  void startQuiz({User? user}) {
     if (quiz == null) {
       _setError('Cannot start quiz: Quiz not loaded');
       return;

@@ -5,11 +5,18 @@ import 'package:go_router/go_router.dart';
 import '../controllers/quiz_play_controller.dart';
 import '../../../providers/quiz_controller_provider.dart';
 import '../utils/quiz_notifications.dart';
+import '../utils/answer_notification.dart'; // Add import for AnswerNotification
+import '../../../core/models/user.dart';
 
 class QuizPlayScreen extends ConsumerStatefulWidget {
   final String quizId;
+  final User? user;
 
-  const QuizPlayScreen({super.key, required this.quizId});
+  const QuizPlayScreen({
+    super.key,
+    required this.quizId,
+    this.user,
+  });
 
   @override
   ConsumerState<QuizPlayScreen> createState() => _QuizPlayScreenState();
@@ -23,7 +30,18 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     super.initState();
     // Start the quiz when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(quizControllerProvider(widget.quizId).notifier).startQuiz();
+      // Pass the user to the controller if available
+      final controller = ref.read(quizControllerProvider(widget.quizId).notifier);
+      controller.startQuiz(user: widget.user);
+
+      // Show welcome message if we have a user
+      if (widget.user != null) {
+        QuizNotifications.showToast(
+          context,
+          'Welcome, ${widget.user!.displayName}!',
+          duration: const Duration(seconds: 2),
+        );
+      }
     });
   }
 

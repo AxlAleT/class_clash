@@ -75,7 +75,7 @@ class QuizDataNotifier extends StateNotifier<QuizDataState> {
   }
 
   Future<void> loadQuizData() async {
-    final quizDataMap = await ref.read(quizProviderProvider).getQuizData(quizId!);
+    final quizDataMap = await ref.read(quizProviderInstance).getQuizData(quizId!);
     if (quizDataMap != null) {
       state = state.copyWith(
         id: quizDataMap['id'] as String?,

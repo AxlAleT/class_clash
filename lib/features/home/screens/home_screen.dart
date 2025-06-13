@@ -1,8 +1,226 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
+import '../../../providers/quiz_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../features/quiz/models/users/standard_user.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final _quizIdController = TextEditingController();
+  final _studentNameController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _quizIdController.dispose();
+    _studentNameController.dispose();
+    super.dispose();
+  }
+
+  void _showStudentJoinDialog() {
+    // Reset error message
+    setState(() {
+      _errorMessage = null;
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Join a Quiz'),
+        content: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _quizIdController,
+                decoration: const InputDecoration(
+                  labelText: 'Enter Quiz Code',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.numbers),
+                ),
+                keyboardType: TextInputType.text,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a quiz code';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _studentNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Your Name',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your name';
+                  }
+                  return null;
+                },
+              ),
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                _joinQuiz();
+              }
+            },
+            child: const Text('Join'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _joinQuiz() {
+    final quizId = _quizIdController.text.trim();
+    final studentName = _studentNameController.text.trim();
+
+    // Check if quiz exists using the QuizProvider
+    final quizData = ref.watch(quizzesProvider);
+
+    quizData.when(
+      data: (quizzes) {
+        final quizExists = quizzes.any((quiz) => quiz['id'] == quizId);
+
+        if (!quizExists) {
+          setState(() {
+            _errorMessage = 'Quiz not found. Please check the code and try again.';
+          });
+          // Force dialog to rebuild with the error message
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Join a Quiz'),
+              content: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: _quizIdController,
+                      decoration: const InputDecoration(
+                        labelText: 'Enter Quiz Code',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.numbers),
+                      ),
+                      keyboardType: TextInputType.text,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a quiz code';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _studentNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Your Name',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your name';
+                        }
+                        return null;
+                      },
+                    ),
+                    if (_errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      _joinQuiz();
+                    }
+                  },
+                  child: const Text('Join'),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+
+        // Generate a unique ID for the student
+        final uuid = const Uuid();
+        final studentId = uuid.v4();
+
+        // Create a standard user for the student
+        final student = StandardUser.guest(
+          displayName: studentName,
+        );
+
+        // Close dialog
+        Navigator.pop(context);
+
+        // Navigate to the quiz play screen with the quiz ID
+        context.go('/quiz/play/$quizId', extra: student);
+      },
+      loading: () {
+        setState(() {
+          _errorMessage = 'Loading quiz data, please wait...';
+        });
+      },
+      error: (error, stackTrace) {
+        setState(() {
+          _errorMessage = 'Error loading quiz data: $error';
+        });
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +275,8 @@ class HomeScreen extends StatelessWidget {
                 height: 56,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    context.go('/quizzes');
+                    // Navigate to login screen instead of directly to quizzes
+                    context.go('/login');
                   },
                   icon: const Icon(Icons.person),
                   label: const Text(
@@ -78,38 +297,7 @@ class HomeScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Join a quiz
-                    showDialog(
-                      context: context,
-                      builder:
-                          (context) => AlertDialog(
-                            title: const Text('Join a Quiz'),
-                            content: TextField(
-                              decoration: const InputDecoration(
-                                labelText: 'Enter Quiz Code',
-                                border: OutlineInputBorder(),
-                              ),
-                              keyboardType: TextInputType.number,
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                                child: const Text('Cancel'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  context.go('/play/1'); // Sample quiz ID
-                                },
-                                child: const Text('Join'),
-                              ),
-                            ],
-                          ),
-                    );
-                  },
+                  onPressed: _showStudentJoinDialog,
                   icon: const Icon(Icons.people),
                   label: const Text(
                     'Enter as Student',

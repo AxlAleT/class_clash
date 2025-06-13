@@ -48,6 +48,6 @@ class QuizListController extends StateNotifier<AsyncValue<List<Quiz>>> {
 /// Provider for the quiz list controller
 final quizListControllerProvider = StateNotifierProvider<QuizListController, AsyncValue<List<Quiz>>>(
   (ref) => QuizListController(
-    quizProvider: ref.watch(quizProviderProvider),
+    quizProvider: ref.watch(quizProviderInstance),
   ),
 );

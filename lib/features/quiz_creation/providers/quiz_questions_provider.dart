@@ -99,7 +99,7 @@ class QuizQuestionsNotifier extends StateNotifier<QuizQuestionsState> {
 
     try {
       // Use the QuizProvider from the provider to ensure we're using the shared instance
-      final quizProvider = _ref.read(quizProviderProvider);
+      final quizProvider = _ref.read(quizProviderInstance);
       final quizData = state.quizModel.toJson();
 
       // Generate a unique ID if one doesn't exist
@@ -241,7 +241,7 @@ class QuizQuestionsNotifier extends StateNotifier<QuizQuestionsState> {
   // Save the quiz to the provider
   Future<String> saveQuiz() async {
     final quizJson = getQuizJson();
-    final quizProvider = _ref.read(quizProviderProvider);
+    final quizProvider = _ref.read(quizProviderInstance);
 
     // Create a new quiz in the provider
     final quizId = await quizProvider.createQuiz(quizJson);

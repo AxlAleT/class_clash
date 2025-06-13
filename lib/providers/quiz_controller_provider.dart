@@ -14,7 +14,7 @@ final quizControllerProvider = StateNotifierProvider.autoDispose.family<QuizCont
 
     return QuizController(
       quizId: quizId,
-      quizProvider: ref.watch(quizProviderProvider),
+      quizProvider: ref.watch(quizProviderInstance),
       user: null, // This could be retrieved from another provider
     );
   },

@@ -156,7 +156,7 @@ class _QuizDataScreenState extends ConsumerState<QuizDataScreen> {
                           StandardQuizModel initialQuizData;
                           if (widget.quizId != null) {
                             // Load full quiz JSON including questions
-                            final quizMap = await ref.read(quizProviderProvider).getQuizData(widget.quizId!);
+                            final quizMap = await ref.read(quizProviderInstance).getQuizData(widget.quizId!);
                             initialQuizData = StandardQuizModel.fromJson(quizMap!);
                           } else {
                             initialQuizData = quizData.createInitialQuizData('teacher_1');
